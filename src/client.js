@@ -4,10 +4,14 @@
  * Reskins the whole DSH shell into a Night City look:
  *   - neon token palette (dark: blue-black + neon yellow/cyan/magenta;
  *     light: warm "Arasaka" paper + gold/red)
- *   - CRT scanlines, vignette, flowing frame ribbon, screen glitch
+ *   - Night City wireframe grid, CRT scanlines, vignette, flowing frame
+ *     ribbon, screen glitch
  *   - flowing + glitching brand wordmark
+ *   - neon caret + neon focus glow on text inputs
  *   - a status strip under the composer (clock / date / UPLINK heartbeat /
- *     accent) with glitch flicker, plus a neon LLM stats line
+ *     accent) with glitch flicker and a pulsing link dot
+ *   - the shipped LLM stats line as per-group cut-corner chips with flowing
+ *     gradient text
  *   - a settings page (color scheme, 4 accent presets, effect toggles)
  *
  * This is the plain "function body" form accepted by the DSH dynamic-plugin
@@ -78,7 +82,7 @@ export function cyberpunkClientPlugin() {
 
       // ---------------- shared in-memory store ----------------
       const listeners = new Set()
-      const state = { accent: 'yellow', scanlines: true, glitch: true, statusGlitch: true, version: 0 }
+      const state = { accent: 'yellow', grid: true, scanlines: true, glitch: true, statusGlitch: true, version: 0 }
       function patch(p) {
         Object.assign(state, p)
         state.version += 1
@@ -123,6 +127,18 @@ code, pre, kbd, samp { font-family: var(--cp-mono) !important; }
   border-radius: 6px;
 }
 
+/* HUD typography + terminal touches */
+h1, h2, h3, h4 { letter-spacing: 0.06em; }
+pre { border-left: 2px solid color-mix(in srgb, var(--dsw-alias-state-success-primary) 35%, transparent); }
+input, textarea { caret-color: var(--dsw-alias-brand-primary); }
+input:not([type='checkbox']):not([type='radio']):focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--dsw-alias-brand-primary) !important;
+  box-shadow: 0 0 0 1px var(--dsw-alias-brand-primary), 0 0 12px var(--cp-glow);
+}
+
 /* brand wordmark + whale logo → flowing palette + glitch flicker */
 svg[viewBox="0 0 182 24"],
 svg[viewBox="0 0 23.16 17.04"] {
@@ -146,6 +162,14 @@ svg[viewBox="0 0 23.16 17.04"] {
 /* ambient overlay */
 .cp-overlay { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
 .cp-layer { position: absolute; inset: 0; }
+.cp-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--dsw-alias-state-success-primary) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--dsw-alias-state-success-primary) 7%, transparent) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.9) 25%, transparent 72%);
+  mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.9) 25%, transparent 72%);
+}
 .cp-scanlines { background: repeating-linear-gradient(0deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 1px, transparent 1px, transparent 3px); }
 [data-ds-dark-theme] .cp-scanlines { background: repeating-linear-gradient(0deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 3px); }
 .cp-vignette { background: radial-gradient(ellipse at center, transparent 50%, rgba(4,5,10,0.5) 100%); }
@@ -243,6 +267,13 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
 .cp-status-net { color: var(--dsw-alias-state-success-primary); border-color: color-mix(in srgb, var(--dsw-alias-state-success-primary) 45%, transparent); }
 .cp-status-net[data-net='offline'] { color: var(--dsw-alias-state-error-primary); border-color: color-mix(in srgb, var(--dsw-alias-state-error-primary) 45%, transparent); }
 .cp-status-net[data-net='sync'] { color: var(--dsw-alias-state-warn-primary); border-color: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 45%, transparent); }
+.cp-status-dot { animation: cp-dot 2s ease-in-out infinite; }
+.cp-status-net[data-net='offline'] .cp-status-dot,
+.cp-status-net[data-net='sync'] .cp-status-dot { animation: none; }
+@keyframes cp-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
 .cp-status--glitch .cp-status-chip { animation: cp-status-glitch 5s steps(1) infinite; }
 .cp-status--glitch .cp-status-chip:nth-child(2) { animation-delay: -1.2s; }
 .cp-status--glitch .cp-status-chip:nth-child(3) { animation-delay: -2.4s; }
@@ -287,6 +318,7 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
   .cp-glitch { animation: none !important; opacity: 0 !important; }
   .cp-ribbon { animation: none !important; }
   .cp-status--glitch .cp-status-chip { animation: none !important; }
+  .cp-status-dot { animation: none !important; }
   .cp-btn { transition: none; }
 }
 `
@@ -305,6 +337,7 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
       function CyberOverlay() {
         const st = useStore()
         const children = []
+        if (st.grid) children.push(React.createElement('div', { key: 'grid', className: 'cp-layer cp-grid' }))
         if (st.scanlines) children.push(React.createElement('div', { key: 'scan', className: 'cp-layer cp-scanlines' }))
         children.push(React.createElement('div', { key: 'vig', className: 'cp-layer cp-vignette' }))
         if (st.glitch) children.push(React.createElement('div', { key: 'glitch', className: 'cp-layer cp-glitch' }))
@@ -339,11 +372,15 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
             if (stopPing) stopPing()
           }
         }, [])
-        const netText = net === 'online' ? '● ONLINE' : (net === 'offline' ? '● OFFLINE' : '● SYNC')
+        const netText = net === 'online' ? 'ONLINE' : (net === 'offline' ? 'OFFLINE' : 'SYNC')
         return React.createElement('div', { className: 'cp-status' + (st.statusGlitch ? ' cp-status--glitch' : '') },
           React.createElement('span', { className: 'cp-status-chip cp-status-time' }, 'Local ', timeStr(now)),
           React.createElement('span', { className: 'cp-status-chip' }, dateStr(now)),
-          React.createElement('span', { className: 'cp-status-chip cp-status-net', 'data-net': net }, 'Uplink ', netText),
+          React.createElement('span', { className: 'cp-status-chip cp-status-net', 'data-net': net },
+            'Uplink ',
+            React.createElement('span', { className: 'cp-status-dot', 'aria-hidden': 'true' }, '●'),
+            ' ', netText,
+          ),
           React.createElement('span', { className: 'cp-status-chip' }, 'Accent ', st.accent.toUpperCase()),
         )
       }
@@ -389,6 +426,10 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
             React.createElement('div', { className: 'cp-row' }, accentBtns),
           ),
           React.createElement('div', { className: 'cp-group' },
+            React.createElement('label', { className: 'cp-toggle' },
+              React.createElement('input', { type: 'checkbox', checked: st.grid, onChange: function (e) { patch({ grid: e.target.checked }) } }),
+              React.createElement('span', null, 'Grid'),
+            ),
             React.createElement('label', { className: 'cp-toggle' },
               React.createElement('input', { type: 'checkbox', checked: st.scanlines, onChange: function (e) { patch({ scanlines: e.target.checked }) } }),
               React.createElement('span', null, 'Scanlines'),

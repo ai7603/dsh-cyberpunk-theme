@@ -13,16 +13,20 @@ status strip under the composer — with a full in-app settings page.
   electric cyan `#00f0ff` / magenta `#ff2d6b`; light mode is a warm "Arasaka"
   paper tone with gold/red accents (readable, not just dark-mode-only).
 - **Fonts** — Rajdhani + Chakra Petch for UI, Share Tech Mono for code/status.
-- **Atmosphere** — CRT scanlines, corner vignette, a flowing neon ribbon along
-  the frame border, and an occasional full-screen glitch.
+- **Atmosphere** — a Night City wireframe grid, CRT scanlines, corner
+  vignette, a flowing neon ribbon along the frame border, and an occasional
+  full-screen glitch.
 - **Brand** — the top-left "DeepSeek Harness" wordmark flows through the
   cyberpunk palette and glitches (RGB split + jitter).
 - **Status strip** — under the composer: live clock, date, `UPLINK ● ONLINE`
-  heartbeat (Client→Host ping), and current accent — with glitch flicker.
-  The shipped LLM stats line is tinted neon too.
+  heartbeat (Client→Host ping, pulsing dot), and current accent — with
+  glitch flicker. The shipped LLM stats line becomes per-group cut-corner
+  chips with flowing gradient text.
+- **Polish** — neon caret, neon focus glow on text inputs, HUD heading
+  spacing, terminal accent bar on code blocks, neon scrollbar/selection.
 - **Settings page** (sidebar → Settings → **Cyberpunk 2077**) — color-scheme
-  switcher, 4 accent presets, and toggles for scanlines / screen glitch /
-  status glitch.
+  switcher, 4 accent presets, and toggles for grid / scanlines / screen
+  glitch / status glitch.
 
 All animations respect `prefers-reduced-motion`.
 
