@@ -21,9 +21,11 @@ status strip under the composer — with a full in-app settings page.
 - **Status strip** — under the composer: live clock, date, `UPLINK ● ONLINE`
   heartbeat (Client→Host ping, pulsing dot), and current accent — with
   glitch flicker. The shipped LLM stats line becomes per-group cut-corner
-  chips with flowing gradient text.
-- **Polish** — neon caret, neon focus glow on text inputs, HUD heading
-  spacing, terminal accent bar on code blocks, neon scrollbar/selection.
+  accent chips (subtle, single accent color).
+- **Deep touches** — neon user-message bubbles, neon hover bars on sidebar
+  workspace/session rows, a neon frame on the composer card, neon caret,
+  neon focus glow, HUD heading spacing, terminal accent bar on code blocks,
+  neon scrollbar/selection.
 - **Settings page** (sidebar → Settings → **Cyberpunk 2077**) — color-scheme
   switcher, 4 accent presets, and toggles for grid / scanlines / screen
   glitch / status glitch.

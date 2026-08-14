@@ -139,6 +139,35 @@ select:focus {
   box-shadow: 0 0 0 1px var(--dsw-alias-brand-primary), 0 0 12px var(--cp-glow);
 }
 
+/* user message bubble → neon tint (stable seat attributes, not hashed classes) */
+[data-chat-flow-kind='user'] [data-time-hover-root] > div:first-child > div:last-child {
+  background: color-mix(in srgb, var(--dsw-alias-brand-primary) 14%, var(--dsw-alias-bg-layer-1));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent),
+    0 0 16px color-mix(in srgb, var(--dsw-alias-brand-primary) 20%, transparent);
+}
+
+/* sidebar workspace/session rows → neon left bar on hover */
+[role='treeitem'] { position: relative; }
+[role='treeitem']:hover::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 25%;
+  bottom: 25%;
+  width: 2px;
+  background: var(--dsw-alias-brand-primary);
+  box-shadow: 0 0 8px var(--cp-glow);
+  z-index: 1;
+}
+
+/* composer card → neon frame */
+[data-composer-seat] > div > div:has([data-input-scroll]) {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 38%, transparent),
+    0 0 22px color-mix(in srgb, var(--dsw-alias-brand-primary) 14%, transparent);
+}
+
 /* brand wordmark + whale logo → flowing palette + glitch flicker */
 svg[viewBox="0 0 182 24"],
 svg[viewBox="0 0 23.16 17.04"] {
@@ -215,41 +244,23 @@ svg[viewBox="0 0 23.16 17.04"] {
   80.6% { opacity: 0; transform: translateX(0); }
 }
 
-/* shipped LLM stats line → per-group cut-corner chips with flowing gradient text */
+/* shipped LLM stats line → clean accent chips (subtraction pass: no rainbow, no glow) */
 div:has(+ .cp-status) {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
   gap: 6px;
-  color: transparent;
-  animation: cp-stats-glitch 5s steps(1) infinite;
 }
 div:has(+ .cp-status) > span:not([aria-hidden]) {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
-  border: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 35%, transparent);
-  background: linear-gradient(90deg, #fcee0a, #00f0ff, #ff2d6b, #b026ff, #fcee0a);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  padding: 2px 10px;
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 28%, transparent);
+  color: var(--dsw-alias-brand-primary);
   clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
-  animation: cp-stats-flow 6s linear infinite;
 }
 div:has(+ .cp-status) > span[aria-hidden] { display: none; }
-@keyframes cp-stats-flow {
-  0% { background-position: 0% 50%; }
-  100% { background-position: 200% 50%; }
-}
-@keyframes cp-stats-glitch {
-  0%, 90%, 100% { transform: none; filter: none; opacity: 1; }
-  91% { transform: translateX(-2px); opacity: 0.8; filter: drop-shadow(2px 0 0 rgba(255,45,85,0.85)) drop-shadow(-2px 0 0 rgba(0,240,255,0.85)); }
-  92% { transform: translateX(2px); opacity: 1; filter: drop-shadow(-2px 0 0 rgba(255,45,85,0.85)) drop-shadow(2px 0 0 rgba(0,240,255,0.85)); }
-  93% { transform: translateX(-1px); opacity: 0.7; filter: drop-shadow(3px 0 0 rgba(255,45,85,0.7)) drop-shadow(-3px 0 0 rgba(0,240,255,0.7)); }
-  94% { transform: none; filter: none; opacity: 1; }
-}
 
 /* status strip under the composer stats line */
 .cp-status {
@@ -313,8 +324,6 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
 .cp-toggle input { width: 16px; height: 16px; accent-color: var(--dsw-alias-brand-primary); cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   svg[viewBox="0 0 182 24"], svg[viewBox="0 0 23.16 17.04"] { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
-  div:has(+ .cp-status),
-  div:has(+ .cp-status) > span:not([aria-hidden]) { animation: none !important; }
   .cp-glitch { animation: none !important; opacity: 0 !important; }
   .cp-ribbon { animation: none !important; }
   .cp-status--glitch .cp-status-chip { animation: none !important; }
