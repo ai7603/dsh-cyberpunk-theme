@@ -12,6 +12,9 @@
  *     accent) with glitch flicker and a pulsing link dot
  *   - the shipped LLM stats line as per-group cut-corner chips with flowing
  *     gradient text
+ *   - cyberpunk diagonal two-corner cuts (top-left + bottom-right) on user
+ *     bubbles, tool-call group cards, composer card, New Session button and
+ *     code blocks, with neon cut-edges
  *   - a settings page (color scheme, 4 accent presets, effect toggles)
  *
  * This is the plain "function body" form accepted by the DSH dynamic-plugin
@@ -139,18 +142,35 @@ select:focus {
   box-shadow: 0 0 0 1px var(--dsw-alias-brand-primary), 0 0 12px var(--cp-glow);
 }
 
-/* user message bubble → all-four-corner cut chip (consistent with status chips) */
+/* user message bubble → cyberpunk diagonal two-corner cut (top-left + bottom-right),
+   with a neon cut-edge: the 1px border is clipped along the diagonal, so the cut
+   line itself glows */
 [data-chat-flow-kind='user'] [data-time-hover-root] > div:first-child > div:last-child {
   background: color-mix(in srgb, var(--dsw-alias-brand-primary) 14%, var(--dsw-alias-bg-layer-1));
-  clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent);
-  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--dsw-alias-brand-primary) 22%, transparent));
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 50%, transparent);
+  border-radius: 0;
+  clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 30%, transparent);
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--dsw-alias-brand-primary) 26%, transparent));
 }
 
-/* tool call cards → diagonal two-corner cut */
-[data-chat-flow-kind='tool-call'] [data-tool] {
+/* tool call groups → a REAL cut-corner card (the underlying rows are chrome-free,
+   so the group seat becomes the visible cyberpunk card) */
+[data-chat-flow-kind='tool-call'] {
+  margin: 2px 0 12px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--dsw-alias-brand-primary) 5%, var(--dsw-alias-bg-layer-1));
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-state-success-primary) 25%, transparent);
+  border-radius: 0;
+  clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 18%, transparent);
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--dsw-alias-state-success-primary) 14%, transparent));
+}
+
+/* code blocks inside the conversation → two-corner cut too */
+[data-chat-flow-kind] pre {
+  border-radius: 0;
   clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 22%, transparent);
 }
 
 /* sidebar workspace/session rows → cyberpunk: neon rail, tint, accent text */
@@ -180,23 +200,31 @@ select:focus {
   color: var(--dsw-alias-brand-primary);
 }
 
-/* sidebar New Session button → cut-corner neon chip (locale-independent anchor) */
-div:has(svg[viewBox="0 0 182 24"]) + button {
-  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+/* sidebar New Session button → cut-corner neon chip.
+   The wordmark svg lives INSIDE the button (button:has), so the previous
+   sibling selector never matched — this one does. */
+button:has(svg[viewBox="0 0 182 24"]) {
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 25%, transparent);
   background: color-mix(in srgb, var(--dsw-alias-brand-primary) 7%, transparent);
-  border: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 22%, transparent);
   transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
 }
-div:has(svg[viewBox="0 0 182 24"]) + button:hover {
+button:has(svg[viewBox="0 0 182 24"]):hover {
   background: color-mix(in srgb, var(--dsw-alias-brand-primary) 14%, transparent);
   color: var(--dsw-alias-brand-primary);
   border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent);
 }
 
-/* composer card → cut-corner neon frame (inset ring follows the clip shape) */
-[data-composer-seat] > div > div:has([data-input-scroll]) {
-  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 38%, transparent);
+/* composer card → cut-corner neon frame (data-composer-card is the card element
+   itself, the element that carries the product's 22px radius + fill).
+   NB: the outer glow uses filter: drop-shadow — an outset box-shadow would be
+   clipped away by clip-path; drop-shadow follows the cut shape instead. */
+[data-composer-card] {
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 35%, transparent) !important;
+  border-radius: 0;
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 22%, transparent);
+  filter: drop-shadow(0 4px 16px color-mix(in srgb, var(--dsw-alias-brand-primary) 16%, transparent));
 }
 
 /* brand wordmark + whale logo → flowing palette + glitch flicker */
@@ -358,7 +386,7 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) {
   svg[viewBox="0 0 182 24"], svg[viewBox="0 0 23.16 17.04"] { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
   div:has(+ .cp-status) > span:not([aria-hidden]) { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
-  div:has(svg[viewBox="0 0 182 24"]) + button { transition: none; }
+  button:has(svg[viewBox="0 0 182 24"]) { transition: none; }
   .cp-glitch { animation: none !important; opacity: 0 !important; }
   .cp-ribbon { animation: none !important; }
   .cp-status--glitch .cp-status-chip { animation: none !important; }

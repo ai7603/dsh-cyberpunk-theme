@@ -52,11 +52,13 @@
   flicker.
 
 ### 🧩 Deep touches
-- **User message bubbles** — cut-corner neon chips (tinted fill, neon inset
-  outline, glow), consistent with the chip language.
+- **Cyberpunk diagonal two-corner cuts** (top-left + bottom-right, the
+  CP2077 signature) on **user bubbles** (16px), **tool-call group cards**
+  (14px), **composer card** (12px), **New Session button** (10px) and
+  **code blocks** (10px) — every cut edge gets a neon line (the 1px border
+  is clipped along the diagonal, so the cut line itself glows).
 - **Sidebar rows** — persistent neon rail on the active session
   (`aria-selected`), neon hover tint + accent text on every row.
-- **Composer card** — neon frame + soft glow.
 - **Neon caret** and **neon focus glow** on text inputs; HUD heading spacing;
   terminal accent bar on code blocks; neon scrollbar & selection.
 
@@ -150,8 +152,16 @@ All knobs live in [`src/client.js`](./src/client.js):
 - **Product DOM targeting**: shipped UI is styled through *stable
   attributes* instead of hashed classes:
   - user bubbles: `data-chat-flow-kind="user"` + `data-time-hover-root`
+    (the last `div` child of the row stack is the bubble itself)
+  - tool-call groups: the `data-chat-flow-kind="tool-call"` seat becomes
+    the visible cut-corner card (rows inside are chrome-free by design)
   - sidebar rows: `role="treeitem"`, `aria-selected="true"`
-  - composer card: `data-composer-seat` + `:has([data-input-scroll])`
+  - composer card: `data-composer-card` (the element carrying the 22px
+    radius + fill; a `:has([data-input-scroll])` probe matched a
+    transparent wrapper and never showed the cut)
+  - New Session button: `button:has(svg[viewBox="0 0 182 24"])` (the
+    wordmark svg lives *inside* the button — a sibling selector misses it)
+  - code blocks: `[data-chat-flow-kind] pre`
   - brand: `svg[viewBox="0 0 182 24"]` / `svg[viewBox="0 0 23.16 17.04"]`
   - LLM stats line: sibling-of-status-strip via `:has(+ .cp-status)`
 
