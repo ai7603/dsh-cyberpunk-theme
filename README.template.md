@@ -1,7 +1,7 @@
 # dsh-cyberpunk-theme · DSH 赛博朋克 2077 主题
 
 > 把 [DeepSeek Harness](https://github.com/deepseek-ai)（DSH）整个界面换成《赛博朋克 2077》夜之城风格的**深度定制主题**——霓虹配色、CRT 氛围、流动彩带、故障闪烁、全局切角 UI、输入框下方的实时状态条，还带一个独立的设置页。
-> 以 **动态 Cordis 插件** 形式分发，**30 秒即可装上**，无需改 DSH 源码、无需构建。
+> 以 **动态 Cordis 插件** 形式分发（30 秒快速体验，零配置），也支持 **clone 仓库一行配置永久安装**（刷新/重启都不丢）。
 
 ---
 
@@ -15,14 +15,39 @@
 
 ---
 
-## 🚀 快速安装（动态插件 · 约 30 秒）
+## 🚀 安装（三选一，按你的场景挑）
 
-**前置条件**：一个能打开 **DeepSeek Harness Web 界面**、且支持动态 Cordis 插件（`cordis_define` / `cordis_run` 流程）的 DSH 实例。
+### 方式一：让 DSH 的 Agent 帮你装 —— 零复制（最省事）
 
-**步骤：**
+如果你在用带 Agent 的 DSH 会话（比如你现在正在看的这个界面），**什么都不用复制**，直接说一句话：
 
-1. 打开 DSH 的 Web 界面，发起**创建动态插件**（`cordis_define`，`idPrefix` 随便取 3–6 个字母，例如 `cpunk`）。
-2. 把下面的 **Host 代码** 粘贴到插件的 host 栏（一个超小的 `ping` 心跳服务，让状态条能显示 UPLINK 在线状态）：
+> 「安装 cyberpunk 2077 主题：client 代码在 `<仓库路径>/src/client.js`，host 代码在 `<仓库路径>/src/host.js`，帮我创建动态插件并运行」
+
+Agent 会读取仓库代码、自动完成 `cordis_define` + `cordis_run`。之后**刷新页面主题消失**时，同样一句话让 Agent 重新运行即可恢复。
+
+### 方式二：clone / 下载仓库，永久安装（推荐正式使用）
+
+把主题装成 DSH 的**正式组合插件**：浏览器端随 DSH 前端一起构建，**刷新不丢、重启不丢**。
+
+1. `git clone https://github.com/ai7603/dsh-cyberpunk-theme`（或直接下载 zip 解压）；
+2. 把仓库放进你的 DSH 包的 workspace（在 `pnpm-workspace.yaml` / `package.json` 的 dependencies 里加上这个本地包）；
+3. 在 DSH 的 `cordis.yml` 末尾追加一行：
+
+```yaml
+- id: cyberpunk-2077
+  name: dsh-cyberpunk-theme
+```
+
+4. 重启 DSH（会重建 web bundle，把浏览器端插件一并打进去）。
+
+浏览器端走 DSH 标准声明机制（package.json 的 `exports["./client"]` + `dsh.client.platform: "web"`），host 端（ping 心跳）随组合加载——与 DSH 内置插件完全同构，见下方「🔩 怎么做到的」。
+
+### 方式三：30 秒快速体验（动态插件，刷新会消失）
+
+想在**不改任何配置**的情况下先看效果？用 DSH 的动态 Cordis 插件：
+
+1. 在 DSH Web 界面发起**创建动态插件**（`cordis_define`，`idPrefix` 如 `cpunk`）。
+2. 把下面的 **Host 代码** 粘贴到 host 栏（一个超小的 `ping` 心跳服务）：
 
 ```js
 {{HOST_BODY}}
@@ -47,25 +72,14 @@
 
 > 💡 **建议暗色模式使用**：设置 → Cyberpunk 2077 → **Night City (Dark)**（或 DSH 自带的外观设置切到暗色）。
 
-### ⚠️ 动态插件的特性（必读）
+### ⚠️ 动态插件 vs 永久安装
 
-- **刷新页面后主题会消失。** 动态插件的客户端部分是**进程级**的：它只在收到一次 **dispatch**（`cordis_run` / 运行卡片）时注入当前页面。刷新后主题没了**不是 bug**——重新运行一次插件（几秒）即可恢复。
-- 插件**不跨 DSH 重启保留**：重启后需要重新创建/运行。
-- 需要长期使用？见下方「🔩 永久安装」。
-
----
-
-## 🔩 永久安装（进阶：重启不丢）
-
-想把主题固化成随 DSH 启动、重启不丢的正式插件，只需把动态插件特有的三处"临时便利"换成常规写法，其余全部原样保留：
-
-| 动态插件写法 | 永久插件等价写法 |
-| --- | --- |
-| `styles.insert(css)` | 打包器 CSS（CSS Modules / 样式表导入） |
-| `React.createElement(...)` | JSX |
-| `harness.handle` / `host.call` 的 ping | 常规的 client ↔ host 桥接 |
-
-其余部分——`theme.overrideTokens`、三个 Slot 注册（`shell.overlay`、`conversation.composer.dock`、`settings.section`）、token 名、配色值——**原样可用，一行都不用改**。
+| | 方式一 / 方式三（动态插件） | 方式二（永久安装） |
+| --- | --- | --- |
+| 安装成本 | 一句话 / 复制粘贴一次 | clone + cordis.yml 一行 + 重启 |
+| 刷新页面 | **主题消失**，需要重新运行 | 一直生效 |
+| DSH 重启 | 插件丢失 | 一直生效 |
+| 适用 | 快速体验、临时试用 | 正式长期使用 |
 
 ---
 
@@ -119,6 +133,24 @@
 
   这些属性不属于 DSH 公开 API——如果 DSH 改了 DOM 结构，主题会**优雅降级**（不报错，只是局部不生效）。
 
+### 🔩 为什么"clone 即装"能成立（方式二原理）
+
+永久安装不是魔法，而是 DSH 的**标准组合插件协议**：
+
+- `cordis.yml` 里的一行 `- id: cyberpunk-2077` + `name: dsh-cyberpunk-theme` 让 Loader 加载本包的 host 端（`src/host-plugin.mjs` → ping 心跳服务）；
+- 浏览器端由 `package.json` 的 `exports["./client"]` + `dsh.client.platform: "web"` 声明被发现，随 DSH 的 web 前端一起构建打包——与 DSH 内置的浏览器插件（如 `cordis-client-runner`）完全同构；
+- 所以它**刷新不丢、重启不丢**。
+
+如果你从动态插件（方式一/三）迁移到永久插件（方式二），只需把三处"动态便利"换成常规写法，其余全部原样保留：
+
+| 动态插件写法 | 永久插件等价写法 |
+| --- | --- |
+| `styles.insert(css)` | 打包器 CSS（CSS Modules / 样式表导入） |
+| `React.createElement(...)` | JSX |
+| `harness.handle` / `host.call` 的 ping | 常规的 client ↔ host 桥接 |
+
+`theme.overrideTokens`、三个 Slot 注册（`shell.overlay`、`conversation.composer.dock`、`settings.section`）、token 名、配色值——**一行都不用改**。
+
 ---
 
 ## 🎨 自定义
@@ -138,16 +170,18 @@
 ```
 dsh-cyberpunk-theme/
 ├── src/
-│   ├── client.js     # 客户端一半：token、CSS、氛围层、状态条、设置页
-│   └── host.js       # 主机一半：私有 ping RPC（心跳）
-├── index.js          # 重新导出两个插件工厂
+│   ├── client.js          # 客户端一半：token、CSS、氛围层、状态条、设置页
+│   ├── host.js            # 主机一半：私有 ping RPC（心跳）
+│   ├── client-plugin.mjs  # 永久安装的浏览器端入口（exports["./client"] 默认导出）
+│   └── host-plugin.mjs    # 永久安装的主机端入口（cordis.yml 行加载）
+├── index.js               # 重新导出两个插件工厂
 ├── scripts/
-│   ├── extract-body.cjs    # 从 src/ 提取可直接粘贴的插件代码块
+│   ├── extract-body.cjs    # 从 src/ 提取可直接粘贴的动态插件代码块
 │   ├── build-readme.cjs    # 用提取结果生成 README.md（安装代码不漂移）
 │   └── inspect-dom.cjs     # 真实页面 DOM 体检（调试产品锚点用）
 ├── docs/
 │   └── screenshots/  # 暗色/亮色实拍截图
-├── package.json
+├── package.json        # 含 exports["./client"] + dsh.client 声明（永久安装协议）
 ├── LICENSE           # MIT
 └── README.md
 ```
