@@ -200,19 +200,21 @@ select:focus {
   color: var(--dsw-alias-brand-primary);
 }
 
-/* sidebar New Session button → cut-corner neon chip.
-   The wordmark svg lives INSIDE the button (button:has), so the previous
-   sibling selector never matched — this one does. */
-button:has(svg[viewBox="0 0 182 24"]) {
+/* real New Session button → cut-corner rectangle.
+   NB: the brand wordmark button sits above it and is 100% filled by the
+   wordmark svg — clipping THAT button would cut the brand, so it is left
+   untouched (its wordmark keeps only the flowing color + glitch). The New
+   Session button is the sidebar root's direct button child carrying the
+   14×14 plus icon. */
+[data-slot="sidebar"] > div > button:has(> svg[viewBox="0 0 16 16"][width="14"]) {
   clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
-  border: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 25%, transparent);
-  background: color-mix(in srgb, var(--dsw-alias-brand-primary) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 30%, transparent);
+  background: color-mix(in srgb, var(--dsw-alias-brand-primary) 8%, transparent);
   transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
 }
-button:has(svg[viewBox="0 0 182 24"]):hover {
-  background: color-mix(in srgb, var(--dsw-alias-brand-primary) 14%, transparent);
-  color: var(--dsw-alias-brand-primary);
-  border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent);
+[data-slot="sidebar"] > div > button:has(> svg[viewBox="0 0 16 16"][width="14"]):hover {
+  background: color-mix(in srgb, var(--dsw-alias-brand-primary) 16%, transparent);
+  border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 50%, transparent);
 }
 
 /* composer card → cut-corner neon frame (data-composer-card is the card element
@@ -386,7 +388,7 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) {
   svg[viewBox="0 0 182 24"], svg[viewBox="0 0 23.16 17.04"] { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
   div:has(+ .cp-status) > span:not([aria-hidden]) { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
-  button:has(svg[viewBox="0 0 182 24"]) { transition: none; }
+  [data-slot="sidebar"] > div > button:has(> svg[viewBox="0 0 16 16"][width="14"]) { transition: none; }
   .cp-glitch { animation: none !important; opacity: 0 !important; }
   .cp-ribbon { animation: none !important; }
   .cp-status--glitch .cp-status-chip { animation: none !important; }

@@ -159,8 +159,10 @@ All knobs live in [`src/client.js`](./src/client.js):
   - composer card: `data-composer-card` (the element carrying the 22px
     radius + fill; a `:has([data-input-scroll])` probe matched a
     transparent wrapper and never showed the cut)
-  - New Session button: `button:has(svg[viewBox="0 0 182 24"])` (the
-    wordmark svg lives *inside* the button — a sibling selector misses it)
+  - New Session button: `[data-slot="sidebar"] > div > button:has(> svg[viewBox="0 0 16 16"][width="14"])`
+    — the sidebar root's direct button child with the 14×14 plus icon. The
+    brand wordmark button (216×24, *fully* filled by the wordmark svg) is
+    deliberately left uncut — clipping it would clip the brand glyphs
   - code blocks: `[data-chat-flow-kind] pre`
   - brand: `svg[viewBox="0 0 182 24"]` / `svg[viewBox="0 0 23.16 17.04"]`
   - LLM stats line: sibling-of-status-strip via `:has(+ .cp-status)`
