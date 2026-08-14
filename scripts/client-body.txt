@@ -1,27 +1,3 @@
-/**
- * DeepSeek Harness — Cyberpunk 2077 Theme (client half)
- *
- * Reskins the whole DSH shell into a Night City look:
- *   - neon token palette (dark: blue-black + neon yellow/cyan/magenta;
- *     light: warm "Arasaka" paper + gold/red)
- *   - Night City wireframe grid, CRT scanlines, vignette, flowing frame
- *     ribbon, screen glitch
- *   - flowing + glitching brand wordmark
- *   - neon caret + neon focus glow on text inputs
- *   - a status strip under the composer (clock / date / UPLINK heartbeat /
- *     accent) with glitch flicker and a pulsing link dot
- *   - the shipped LLM stats line as per-group cut-corner chips with flowing
- *     gradient text
- *   - cyberpunk diagonal two-corner cuts (top-left + bottom-right) on user
- *     bubbles, tool-call group cards, composer card, New Session button and
- *     code blocks, with neon cut-edges
- *   - a settings page (color scheme, 4 accent presets, effect toggles)
- *
- * This is the plain "function body" form accepted by the DSH dynamic-plugin
- * feature as `code.client`. In the web GUI, paste the `return { … }` block
- * below as the client code; the file also works as a plain ES module.
- */
-export function cyberpunkClientPlugin() {
   return {
     apply(ctx) {
       const theme = ctx.get('theme')
@@ -545,4 +521,3 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
       })
     },
   }
-}
