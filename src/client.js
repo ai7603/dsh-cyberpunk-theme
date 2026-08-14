@@ -244,26 +244,19 @@ svg[viewBox="0 0 23.16 17.04"] {
   80.6% { opacity: 0; transform: translateX(0); }
 }
 
-/* shipped LLM stats line → one-line chips, gradient synced with the brand palette */
+/* shipped LLM stats line → compact one-line chips, color synced with the brand (same keyframes) */
 div:has(+ .cp-status) > span:not([aria-hidden]) {
   display: inline-flex;
   align-items: center;
-  margin: 0 3px;
-  padding: 2px 10px;
-  border: 1px solid color-mix(in srgb, #00f0ff 22%, transparent);
-  background: linear-gradient(90deg, #fcee0a, #00f0ff, #ff2d6b, #b026ff, #fcee0a);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  margin: 0 2px;
+  padding: 1px 6px;
+  font-size: 11px;
+  border: 1px solid color-mix(in srgb, #00f0ff 20%, transparent);
+  color: #fcee0a;
   clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
-  animation: cp-stats-flow 8s linear infinite, cp-stats-glitch 8s steps(1) infinite;
+  animation: cp-brand 8s linear infinite, cp-stats-glitch 8s steps(1) infinite;
 }
 div:has(+ .cp-status) > span[aria-hidden] { display: none; }
-@keyframes cp-stats-flow {
-  0% { background-position: 0% 50%; }
-  100% { background-position: 200% 50%; }
-}
 @keyframes cp-stats-glitch {
   0%, 92%, 100% { transform: none; filter: drop-shadow(0 0 6px rgba(0,240,255,0.35)); opacity: 1; }
   93% { transform: translateX(-1px); opacity: 0.85; filter: drop-shadow(1px 0 0 rgba(255,45,85,0.6)) drop-shadow(-1px 0 0 rgba(0,240,255,0.6)); }
@@ -333,7 +326,7 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
 .cp-toggle input { width: 16px; height: 16px; accent-color: var(--dsw-alias-brand-primary); cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   svg[viewBox="0 0 182 24"], svg[viewBox="0 0 23.16 17.04"] { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
-  div:has(+ .cp-status) > span:not([aria-hidden]) { animation: none !important; }
+  div:has(+ .cp-status) > span:not([aria-hidden]) { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
   .cp-glitch { animation: none !important; opacity: 0 !important; }
   .cp-ribbon { animation: none !important; }
   .cp-status--glitch .cp-status-chip { animation: none !important; }
