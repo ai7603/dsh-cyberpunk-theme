@@ -142,9 +142,15 @@ select:focus {
 /* user message bubble → all-four-corner cut chip (consistent with status chips) */
 [data-chat-flow-kind='user'] [data-time-hover-root] > div:first-child > div:last-child {
   background: color-mix(in srgb, var(--dsw-alias-brand-primary) 14%, var(--dsw-alias-bg-layer-1));
-  clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px), 0 12px);
+  clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent);
   filter: drop-shadow(0 0 14px color-mix(in srgb, var(--dsw-alias-brand-primary) 22%, transparent));
+}
+
+/* tool call cards → diagonal two-corner cut */
+[data-chat-flow-kind='tool-call'] [data-tool] {
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 22%, transparent);
 }
 
 /* sidebar workspace/session rows → cyberpunk: neon rail, tint, accent text */
@@ -176,7 +182,7 @@ select:focus {
 
 /* sidebar New Session button → cut-corner neon chip (locale-independent anchor) */
 div:has(svg[viewBox="0 0 182 24"]) + button {
-  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
   background: color-mix(in srgb, var(--dsw-alias-brand-primary) 7%, transparent);
   border: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 22%, transparent);
   transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
@@ -189,7 +195,7 @@ div:has(svg[viewBox="0 0 182 24"]) + button:hover {
 
 /* composer card → cut-corner neon frame (inset ring follows the clip shape) */
 [data-composer-seat] > div > div:has([data-input-scroll]) {
-  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 38%, transparent);
 }
 
