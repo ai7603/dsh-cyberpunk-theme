@@ -147,18 +147,31 @@ select:focus {
     0 0 16px color-mix(in srgb, var(--dsw-alias-brand-primary) 20%, transparent);
 }
 
-/* sidebar workspace/session rows → neon left bar on hover */
-[role='treeitem'] { position: relative; }
-[role='treeitem']:hover::before {
+/* sidebar workspace/session rows → cyberpunk: neon rail, tint, accent text */
+[role='treeitem'] {
+  position: relative;
+  letter-spacing: 0.02em;
+  transition: background 120ms ease, color 120ms ease;
+}
+[role='treeitem']:hover {
+  background: color-mix(in srgb, var(--dsw-alias-brand-primary) 6%, transparent);
+  color: var(--dsw-alias-brand-primary);
+}
+[role='treeitem']:hover::before,
+[role='treeitem'][aria-selected='true']::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 25%;
-  bottom: 25%;
+  top: 20%;
+  bottom: 20%;
   width: 2px;
   background: var(--dsw-alias-brand-primary);
   box-shadow: 0 0 8px var(--cp-glow);
   z-index: 1;
+}
+[role='treeitem'][aria-selected='true'] {
+  background: color-mix(in srgb, var(--dsw-alias-brand-primary) 10%, transparent);
+  color: var(--dsw-alias-brand-primary);
 }
 
 /* composer card → neon frame */
@@ -331,6 +344,7 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
   .cp-ribbon { animation: none !important; }
   .cp-status--glitch .cp-status-chip { animation: none !important; }
   .cp-status-dot { animation: none !important; }
+  [role='treeitem'] { transition: none; }
   .cp-btn { transition: none; }
 }
 `
