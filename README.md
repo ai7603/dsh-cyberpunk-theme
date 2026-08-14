@@ -1,105 +1,181 @@
 # DSH Cyberpunk 2077 Theme
 
-A deep **Cyberpunk 2077 / Night City** reskin for
-[DeepSeek Harness](https://github.com/deepseek-ai) (DSH). It retints the whole
-shell, adds a CRT/neon atmosphere layer, restyles the brand, and drops a live
-status strip under the composer — with a full in-app settings page.
+> A deep **Cyberpunk 2077 / Night City** reskin for
+> [DeepSeek Harness](https://github.com/deepseek-ai) (DSH), shipped as a
+> **dynamic Cordis plugin**. Neon palette, CRT atmosphere, flowing brand,
+> live status readout — with an in-app settings page.
 
-> 中文摘要：一个把 DeepSeek Harness 整体换成《赛博朋克 2077》夜之城风格的动态 Cordis 插件 —— 霓虹配色 + 扫描线/暗角/边框彩带/故障闪烁 + 品牌多色流动 + composer 下方实时状态条（时间/日期/心跳/强调色），并带设置页可切换配色方案、4 套强调色与特效开关。
+中文简介：把 DeepSeek Harness 整体换成《赛博朋克 2077》夜之城风格的动态 Cordis 插件——霓虹配色 + 线框网格/扫描线/暗角/边框流动彩带/故障闪烁 + 品牌多色流动 + composer 下方实时状态条（时间 / 日期 / UPLINK 心跳 / 强调色），并带设置页：配色方案切换、4 套强调色、4 个特效开关。
 
-## What it looks like
+---
 
-- **Palette** — dark mode is blue-black with neon yellow `#fcee0a` /
-  electric cyan `#00f0ff` / magenta `#ff2d6b`; light mode is a warm "Arasaka"
-  paper tone with gold/red accents (readable, not just dark-mode-only).
-- **Fonts** — Rajdhani + Chakra Petch for UI, Share Tech Mono for code/status.
-- **Atmosphere** — a Night City wireframe grid, CRT scanlines, corner
-  vignette, a flowing neon ribbon along the frame border, and an occasional
-  full-screen glitch.
-- **Brand** — the top-left "DeepSeek Harness" wordmark flows through the
-  cyberpunk palette and glitches (RGB split + jitter).
-- **Status strip** — under the composer: live clock, date, `UPLINK ● ONLINE`
-  heartbeat (Client→Host ping, pulsing dot), and current accent — with
-  glitch flicker. The shipped LLM stats line becomes per-group cut-corner
-  accent chips (subtle, single accent color).
-- **Deep touches** — neon user-message bubbles, neon hover bars on sidebar
-  workspace/session rows, a neon frame on the composer card, neon caret,
-  neon focus glow, HUD heading spacing, terminal accent bar on code blocks,
-  neon scrollbar/selection.
-- **Settings page** (sidebar → Settings → **Cyberpunk 2077**) — color-scheme
-  switcher, 4 accent presets, and toggles for grid / scanlines / screen
-  glitch / status glitch.
+## Screenshots
 
-All animations respect `prefers-reduced-motion`.
+| 🌃 Night City (dark) | 🏙 Arasaka (light) |
+| --- | --- |
+| ![Dark mode](docs/screenshots/session-dark.png) | ![Light mode](docs/screenshots/session-light.png) |
 
-## What this is
+*(Captured from a live DSH session with the plugin active — dark mode shows the full neon look.)*
 
-This is a **Dynamic Cordis Plugin** for DSH — the runtime feature that extends
-a running DSH process with Host/Client code (the `cordis_define` +
-`cordis_run` flow). It is *not* a standalone npm package and does not persist
-across a process restart by itself; the code here is the source you feed to
-that feature (or a reference to port into a permanent composition package).
+---
 
-### Structure
+## Features
 
-```
-.
-├── index.js          # re-exports the client + host plugin factories
-├── src/
-│   ├── client.js     # client half (theme tokens, CSS, overlay, status strip, settings)
-│   └── host.js       # host half (package-private `ping` RPC for the heartbeat)
-├── package.json
-├── LICENSE           # MIT
-└── README.md
-```
+### 🎨 Palette
+- **Dark mode — Night City**: blue-black `#08090f` canvas with neon yellow
+  `#fcee0a` accents, electric cyan `#00f0ff`, magenta `#ff2d6b`.
+- **Light mode — Arasaka**: warm paper `#edece2` with gold/red accents,
+  readable but clearly themed.
+- 4 accent presets (Night City Yellow / Netrunner Cyan / Trauma Team Magenta /
+  Arasaka Gold), each with tuned light+dark pairs.
 
-- `cyberpunkClientPlugin()` returns the client-half Cordis Plugin.
-- `cyberpunkHostPlugin()` returns the host-half Cordis Plugin.
+### 🌆 Atmosphere (all click-through, `pointer-events: none`)
+- **Night City wireframe grid** — faint cyan grid, center-focused, fading at
+  the edges.
+- **CRT scanlines** — adaptive to the color scheme (dark lines on light,
+  light lines on dark).
+- **Vignette** — soft corner darkening.
+- **Flowing frame ribbon** — a 2px neon ribbon (yellow → cyan → magenta →
+  purple) flowing around the whole app border.
+- **Screen glitch** — occasional full-screen glitch burst.
 
-Each factory's body is exactly the plain-JavaScript "function body" the DSH
-dynamic-plugin feature accepts as `code.client` / `code.host`.
+### ✨ Brand
+- The top-left **DeepSeek Harness wordmark + whale logo** flow through the
+  four-color palette (8s cycle) with periodic RGB-split glitch.
 
-## Usage
+### 📊 Composer readout
+- **LLM stats line** — the shipped stats line becomes compact one-line
+  cut-corner chips whose color **syncs live with the brand** (same keyframes),
+  with a soft glow and a rare subtle glitch.
+- **Status strip** — `LOCAL HH:MM:SS` · date · `UPLINK ● ONLINE` heartbeat
+  (real Client→Host ping, pulsing dot) · current accent; optional glitch
+  flicker.
 
-### A. Via the DSH web GUI (dynamic plugin)
+### 🧩 Deep touches
+- **User message bubbles** — cut-corner neon chips (tinted fill, neon inset
+  outline, glow), consistent with the chip language.
+- **Sidebar rows** — persistent neon rail on the active session
+  (`aria-selected`), neon hover tint + accent text on every row.
+- **Composer card** — neon frame + soft glow.
+- **Neon caret** and **neon focus glow** on text inputs; HUD heading spacing;
+  terminal accent bar on code blocks; neon scrollbar & selection.
 
-1. Open DSH in the browser and start the dynamic-plugin flow.
-2. Create a new Plugin (any 3–6 letter `idPrefix`, e.g. `cpunk`).
+### ⚙️ Settings page (`Settings → Cyberpunk 2077`)
+- Color scheme: **Night City (Dark)** / System / Light.
+- Accent: 4 presets, applied live via `theme.overrideTokens`.
+- Toggles: **Grid**, **Scanlines**, **Screen glitch**, **Status glitch**.
+- Everything respects `prefers-reduced-motion`.
+
+---
+
+## Requirements
+
+- DeepSeek Harness with the **dynamic Cordis plugin** feature
+  (`cordis_define` / `cordis_run` flow).
+- A modern browser: `color-mix()` (Chrome 111+, Safari 16.2+, Firefox 113+)
+  and `:has()` (Chrome 105+, Safari 15.4+, Firefox 121+). Unsupported
+  browsers degrade gracefully (no glow/grid, still themed).
+- Internet access for Google Fonts (Rajdhani / Chakra Petch / Share Tech
+  Mono); falls back to system fonts offline.
+
+---
+
+## Installation
+
+This is a **dynamic Cordis plugin** — the runtime extension feature of DSH.
+The repo's `src/client.js` and `src/host.js` are the exact plain-JavaScript
+"function body" forms the feature accepts.
+
+1. Open DSH in a browser and start the **dynamic-plugin** flow.
+2. Create a new plugin with any 3–6 letter `idPrefix` (e.g. `cpunk`).
 3. Paste the `return { … }` block from
    [`src/client.js`](./src/client.js) as the **client** code, and the
    `return { … }` block from [`src/host.js`](./src/host.js) as the **host**
    code.
 4. Run it and approve the activation.
 
-> Tip: the full Night City look reads best in **dark mode** — use
-> Settings → Cyberpunk 2077 → **Night City (Dark)**, or the built-in
-> Appearance setting.
+> 💡 Best in **dark mode**: Settings → Cyberpunk 2077 → **Night City (Dark)**,
+> or the built-in Appearance setting.
 
-### B. Port into a permanent composition package
+### ⚠️ How dynamic plugins behave
 
-To ship it as a persistent plugin (survives restart, mounts via `cordis.yml`),
-wrap the same logic in a regular Cordis client plugin:
+- The client half loads when the page receives a **dispatch** (a
+  `cordis_run` / `cordis_update`, or pressing a run card's start control).
+- **Refreshing the page clears the client half** — the theme returns on the
+  next dispatch (re-run the plugin). This is by design of the dynamic-plugin
+  runtime.
+- The plugin is process-scoped: it does **not** persist across a DSH
+  restart.
 
-- replace the dynamic `styles.insert(css)` with your bundler's CSS
-  (CSS modules / a stylesheet import);
-- replace the `React.createElement(...)` calls with JSX (the code is
-  otherwise plain Cordis);
-- replace the dynamic `harness.handle` / `host.call` ping with your
-  preferred client↔host bridge.
+### Porting to a permanent plugin
 
-The theme service (`theme.overrideTokens`), the slot registrations
-(`shell.overlay`, `conversation.composer.dock`, `settings.section`), the
-token names, and the palette values carry over unchanged.
+To ship it as a persistent composition plugin (mounts via `cordis.yml`,
+survives restarts), replace the three dynamic conveniences:
+
+| Dynamic API | Permanent plugin equivalent |
+| --- | --- |
+| `styles.insert(css)` | bundler CSS (CSS modules / stylesheet import) |
+| `React.createElement(...)` | JSX |
+| `harness.handle` / `host.call` ping | your regular client↔host bridge |
+
+Everything else — `theme.overrideTokens`, slot registrations
+(`shell.overlay`, `conversation.composer.dock`, `settings.section`), token
+names, palette values — carries over unchanged.
+
+---
 
 ## Customization
 
-- **Accent presets** live in the `ACCENTS` map in `src/client.js` — add/change
-  a preset by editing its `brand`/`success`/`error`/`warn` light+dark pairs.
-- **Palette** lives in `baseTokens` (accent-independent background/text/border
-  tokens) — every value is a `{ light, dark }` pair.
-- **Effect timing/intensity** — the `cp-ribbon`, `cp-brand`, `cp-glitch`,
-  `cp-status-glitch`, and `cp-stats-glitch` keyframes (durations are the
-  `…s infinite` values in the `MAIN_CSS` template string).
+All knobs live in [`src/client.js`](./src/client.js):
+
+- **`ACCENTS`** — accent presets; add one by giving it `label` +
+  `{ light, dark }` pairs for `brand` / `success` / `error` / `warn`.
+- **`baseTokens`** — accent-independent background/text/border tokens,
+  each a `{ light, dark }` pair (the 13 DSH alias tokens).
+- **`MAIN_CSS`** — every effect; durations are the `…s infinite` values in
+  the `@keyframes` (`cp-ribbon`, `cp-brand`, `cp-glitch`,
+  `cp-stats-glitch`, `cp-status-glitch`, `cp-dot`), intensities are the
+  alpha/`color-mix` percentages.
+
+---
+
+## How it works
+
+- **Tokens**: `theme.overrideTokens(source, tokens)` stacks a layer over the
+  active theme — the presenter projects it onto `body` as inline CSS
+  variables, so both light and dark palettes get full overrides.
+- **Slots**: the overlay is registered in `shell.overlay` (list, additive),
+  the status strip in `conversation.composer.dock`, the settings page in
+  `settings.section`.
+- **Product DOM targeting**: shipped UI is styled through *stable
+  attributes* instead of hashed classes:
+  - user bubbles: `data-chat-flow-kind="user"` + `data-time-hover-root`
+  - sidebar rows: `role="treeitem"`, `aria-selected="true"`
+  - composer card: `data-composer-seat` + `:has([data-input-scroll])`
+  - brand: `svg[viewBox="0 0 182 24"]` / `svg[viewBox="0 0 23.16 17.04"]`
+  - LLM stats line: sibling-of-status-strip via `:has(+ .cp-status)`
+
+  These are not part of DSH's public API — if DSH changes its DOM structure
+  they degrade gracefully (no errors, just un-styled regions).
+
+---
+
+## Project structure
+
+```
+dsh-cyberpunk-theme/
+├── src/
+│   ├── client.js     # client half: tokens, CSS, overlay, status strip, settings
+│   └── host.js       # host half: package-private `ping` RPC (heartbeat)
+├── index.js          # re-exports both plugin factories
+├── docs/
+│   └── screenshots/  # dark & light captures
+├── package.json
+├── LICENSE           # MIT
+└── README.md
+```
+
+---
 
 ## License
 

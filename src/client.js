@@ -139,10 +139,10 @@ select:focus {
   box-shadow: 0 0 0 1px var(--dsw-alias-brand-primary), 0 0 12px var(--cp-glow);
 }
 
-/* user message bubble → cut-corner neon chip (consistent with status chips) */
+/* user message bubble → all-four-corner cut chip (consistent with status chips) */
 [data-chat-flow-kind='user'] [data-time-hover-root] > div:first-child > div:last-child {
   background: color-mix(in srgb, var(--dsw-alias-brand-primary) 14%, var(--dsw-alias-bg-layer-1));
-  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px), 0 12px);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent);
   filter: drop-shadow(0 0 14px color-mix(in srgb, var(--dsw-alias-brand-primary) 22%, transparent));
 }
