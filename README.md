@@ -130,9 +130,10 @@ Agent 会读取仓库代码、自动完成 `cordis_define` + `cordis_run`。之�
 
       // ---------------- shared in-memory store ----------------
       const listeners = new Set()
-      const state = { accent: 'yellow', grid: true, scanlines: true, glitch: true, statusGlitch: true, version: 0 }
+      const state = { accent: 'yellow', perf: 'balanced', grid: true, scanlines: true, glitch: true, statusGlitch: true, version: 0 }
       function patch(p) {
         Object.assign(state, p)
+        if (p.perf !== undefined) document.documentElement.setAttribute('data-cp-perf', state.perf)
         state.version += 1
         listeners.forEach(function (fn) { try { fn() } catch (e) {} })
       }
@@ -196,7 +197,7 @@ select:focus {
   border-radius: 0;
   clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 30%, transparent);
-  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--dsw-alias-brand-primary) 26%, transparent));
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--dsw-alias-brand-primary) 22%, transparent));
 }
 
 /* tool call groups → a REAL cut-corner card (the underlying rows are chrome-free,
@@ -209,7 +210,7 @@ select:focus {
   border-radius: 0;
   clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 18%, transparent);
-  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--dsw-alias-state-success-primary) 14%, transparent));
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--dsw-alias-state-success-primary) 12%, transparent));
 }
 
 /* code blocks inside the conversation → two-corner cut too */
@@ -288,7 +289,7 @@ select:focus {
   border-radius: 0;
   clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 22%, transparent);
-  filter: drop-shadow(0 4px 16px color-mix(in srgb, var(--dsw-alias-brand-primary) 16%, transparent));
+  filter: drop-shadow(0 4px 12px color-mix(in srgb, var(--dsw-alias-brand-primary) 14%, transparent));
 }
 
 /* brand wordmark + whale logo → flowing palette + glitch flicker */
@@ -447,6 +448,29 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
 }
 .cp-toggle { display: flex; align-items: center; gap: 10px; padding: 10px 0; cursor: pointer; font-size: 14px; letter-spacing: 0.04em; }
 .cp-toggle input { width: 16px; height: 16px; accent-color: var(--dsw-alias-brand-primary); cursor: pointer; }
+
+/* performance tiers — the expensive layers are the full-screen animations
+   (flowing ribbon repaints the whole viewport every frame, the glitch layer,
+   dense scanlines) and filter drop-shadows during keyframe glitches.
+   balanced (default): drop the full-screen glitch layer, thin the scanlines,
+   slow the ribbon + brand cycles. eco: everything static — the neon look
+   stays, only the motion goes away. */
+html[data-cp-perf='balanced'] .cp-glitch { display: none !important; }
+html[data-cp-perf='balanced'] .cp-ribbon { animation-duration: 18s; }
+html[data-cp-perf='balanced'] svg[viewBox="0 0 182 24"],
+html[data-cp-perf='balanced'] svg[viewBox="0 0 23.16 17.04"] { animation-duration: 12s; }
+html[data-cp-perf='balanced'] .cp-scanlines { background: repeating-linear-gradient(0deg, rgba(0,0,0,0.10) 0px, rgba(0,0,0,0.10) 1px, transparent 1px, transparent 4px); }
+html[data-cp-perf='balanced'] [data-ds-dark-theme] .cp-scanlines { background: repeating-linear-gradient(0deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 4px); }
+html[data-cp-perf='eco'] .cp-ribbon { animation: none !important; }
+html[data-cp-perf='eco'] .cp-glitch { display: none !important; }
+html[data-cp-perf='eco'] .cp-grid { display: none !important; }
+html[data-cp-perf='eco'] .cp-scanlines { display: none !important; }
+html[data-cp-perf='eco'] .cp-vignette { display: none !important; }
+html[data-cp-perf='eco'] svg[viewBox="0 0 182 24"],
+html[data-cp-perf='eco'] svg[viewBox="0 0 23.16 17.04"] { animation: none !important; color: var(--dsw-alias-brand-primary); }
+html[data-cp-perf='eco'] div:has(+ .cp-status) > span:not([aria-hidden]) { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
+html[data-cp-perf='eco'] .cp-status--glitch .cp-status-chip { animation: none !important; }
+html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
 @media (prefers-reduced-motion: reduce) {
   svg[viewBox="0 0 182 24"], svg[viewBox="0 0 23.16 17.04"] { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
   div:has(+ .cp-status) > span:not([aria-hidden]) { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
@@ -463,6 +487,9 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
       const disposeFonts = styles.insert(FONT_CSS)
       const disposeMain = styles.insert(MAIN_CSS)
       ctx.effect(function () { return function () { disposeFonts(); disposeMain() } })
+
+      // performance tier on <html> so the CSS overrides below can branch on it
+      document.documentElement.setAttribute('data-cp-perf', state.perf)
 
       // ---------------- components ----------------
       function useStore() {
@@ -540,6 +567,15 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
             onClick: function () { applyAccent(key) },
           }, ACCENTS[key].label)
         })
+        const perfBtns = ['full', 'balanced', 'eco'].map(function (id) {
+          const label = id === 'full' ? 'Full' : (id === 'balanced' ? 'Balanced' : 'Eco')
+          return React.createElement('button', {
+            key: id,
+            type: 'button',
+            className: 'cp-btn' + (st.perf === id ? ' cp-btn--active' : ''),
+            onClick: function () { patch({ perf: id }) },
+          }, label)
+        })
         const schemeBtns = ['dark', 'system', 'light'].map(function (id) {
           const isActive = theme.getTheme().preference === id
           const label = id === 'dark' ? 'Night City (Dark)' : (id === 'system' ? 'System' : 'Light')
@@ -561,6 +597,11 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
           React.createElement('div', { className: 'cp-group' },
             React.createElement('div', { className: 'cp-group-label' }, 'Accent'),
             React.createElement('div', { className: 'cp-row' }, accentBtns),
+          ),
+          React.createElement('div', { className: 'cp-group' },
+            React.createElement('div', { className: 'cp-group-label' }, 'Performance'),
+            React.createElement('div', { className: 'cp-row' }, perfBtns),
+            React.createElement('p', { className: 'cp-note' }, 'Balanced (default): no full-screen glitch, slower ribbon & brand. Eco: all motion off — coolest Mac.'),
           ),
           React.createElement('div', { className: 'cp-group' },
             React.createElement('label', { className: 'cp-toggle' },
@@ -658,6 +699,7 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
 ### ⚙️ 设置页（设置 → Cyberpunk 2077）
 - 配色方案：**夜之城（暗色）** / 跟随系统 / 亮色。
 - 强调色：4 套预设，通过 `theme.overrideTokens` 实时切换。
+- **性能档位：Full / Balanced（默认）/ Eco**——Balanced 关闭全屏故障层、加粗扫描线间距、放缓彩带与品牌动画；Eco 全部动画静止（最省电，Mac 不发烫）。发热大户就是全屏流动彩带与故障层的逐帧重绘，两档省电模式直接去掉它们。
 - 特效开关：**网格** / **扫描线** / **屏幕故障** / **状态条故障**。
 - 全部尊重 `prefers-reduced-motion`（系统"减弱动态效果"时自动关闭动画）。
 
