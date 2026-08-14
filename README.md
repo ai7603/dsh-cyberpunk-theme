@@ -156,9 +156,14 @@ All knobs live in [`src/client.js`](./src/client.js):
   - tool-call groups: the `data-chat-flow-kind="tool-call"` seat becomes
     the visible cut-corner card (rows inside are chrome-free by design)
   - sidebar rows: `role="treeitem"`, `aria-selected="true"`
-  - composer card: `data-composer-card` (the element carrying the 22px
-    radius + fill; a `:has([data-input-scroll])` probe matched a
-    transparent wrapper and never showed the cut)
+  - composer card: `data-composer-card` — the cut-corner frame is drawn on a
+    `::before` pseudo-element layer (card fill + neon border + glow are all
+    clipped there). **Never clip-path the card itself**: the model selector
+    and reasoning-effort menus render inside the card's overlay anchor, and a
+    `clip-path` on an ancestor hard-clips its descendants — they cannot
+    escape, not even with `position: fixed`. This broke model switching and
+    effort selection in v22; the pseudo-element approach keeps both the cut
+    look and fully functional menus.
   - New Session button: `[data-slot="sidebar"] > div > button:has(> svg[viewBox="0 0 16 16"][width="14"])`
     — the sidebar root's direct button child with the 14×14 plus icon. The
     brand wordmark button (216×24, *fully* filled by the wordmark svg) is

@@ -218,12 +218,28 @@ select:focus {
   border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 50%, transparent);
 }
 
-/* composer card → cut-corner neon frame (data-composer-card is the card element
-   itself, the element that carries the product's 22px radius + fill).
-   NB: the outer glow uses filter: drop-shadow — an outset box-shadow would be
-   clipped away by clip-path; drop-shadow follows the cut shape instead. */
+/* composer card → cut-corner neon frame, drawn on a ::before layer.
+   CRITICAL: never clip-path the card itself — the model selector and
+   reasoning-effort menu render INSIDE the card (conversation.input.overlay
+   anchor), and a clip-path on an ancestor hard-clips its descendants (they
+   cannot escape, not even with position: fixed). The pseudo-element carries
+   the cut shape instead: it paints the card fill + neon border + glow and is
+   clipped alone, so the menus stay fully visible and clickable. */
 [data-composer-card] {
-  border: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 35%, transparent) !important;
+  position: relative;
+  z-index: 0; /* stacking context so the ::before layer stays under the content */
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+[data-composer-card]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--dsw-specific-input-major);
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 35%, transparent);
   border-radius: 0;
   clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 22%, transparent);
