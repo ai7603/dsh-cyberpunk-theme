@@ -1,0 +1,23 @@
+{
+  "name": "dsh-cyberpunk-theme",
+  "version": "1.0.0",
+  "description": "Cyberpunk 2077 (Night City) theme for DeepSeek Harness — a dynamic Cordis plugin.",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "src"
+  ],
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "cyberpunk",
+    "theme",
+    "cordis",
+    "plugin"
+  ],
+  "license": "MIT"
+}
