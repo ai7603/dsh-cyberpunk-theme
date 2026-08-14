@@ -139,12 +139,12 @@ select:focus {
   box-shadow: 0 0 0 1px var(--dsw-alias-brand-primary), 0 0 12px var(--cp-glow);
 }
 
-/* user message bubble → neon tint (stable seat attributes, not hashed classes) */
+/* user message bubble → cut-corner neon chip (consistent with status chips) */
 [data-chat-flow-kind='user'] [data-time-hover-root] > div:first-child > div:last-child {
   background: color-mix(in srgb, var(--dsw-alias-brand-primary) 14%, var(--dsw-alias-bg-layer-1));
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent),
-    0 0 16px color-mix(in srgb, var(--dsw-alias-brand-primary) 20%, transparent);
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent);
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--dsw-alias-brand-primary) 22%, transparent));
 }
 
 /* sidebar workspace/session rows → cyberpunk: neon rail, tint, accent text */
