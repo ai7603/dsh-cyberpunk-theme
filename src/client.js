@@ -16,7 +16,8 @@
  *     bubbles, tool-call group cards, composer card, New Session button and
  *     code blocks, with neon cut-edges
  *   - three performance tiers (Full / Balanced / Eco) to keep the Mac cool
- *   - a settings page (color scheme, 4 accent presets, effect toggles)
+ *   - a settings page (master on/off switch, color scheme, 4 accent presets,
+ *     performance tiers, effect toggles)
  *
  * This is the plain "function body" form accepted by the DSH dynamic-plugin
  * feature as `code.client`. In the web GUI, paste the `return { … }` block
@@ -118,10 +119,24 @@ export function cyberpunkClientPlugin() {
 
       // ---------------- shared in-memory store ----------------
       const listeners = new Set()
-      const state = { accent: 'yellow', perf: 'balanced', grid: true, scanlines: true, glitch: true, statusGlitch: true, version: 0 }
+      const state = { enabled: true, accent: 'yellow', perf: 'balanced', grid: true, scanlines: true, glitch: true, statusGlitch: true, version: 0 }
+
+      function syncEnabledAttrs() {
+        if (state.enabled) {
+          document.documentElement.setAttribute('data-cp-enabled', '')
+          document.documentElement.setAttribute('data-cp-perf', state.perf)
+        } else {
+          document.documentElement.removeAttribute('data-cp-enabled')
+          document.documentElement.removeAttribute('data-cp-perf')
+        }
+      }
+
       function patch(p) {
+        const accentChanged = p.accent !== undefined && p.accent !== state.accent
+        const enabledChanged = p.enabled !== undefined && p.enabled !== state.enabled
         Object.assign(state, p)
-        if (p.perf !== undefined) document.documentElement.setAttribute('data-cp-perf', state.perf)
+        if (accentChanged || enabledChanged) syncTokens()
+        if (p.enabled !== undefined || p.perf !== undefined) syncEnabledAttrs()
         state.version += 1
         listeners.forEach(function (fn) { try { fn() } catch (e) {} })
       }
@@ -132,12 +147,24 @@ export function cyberpunkClientPlugin() {
 
       // ---------------- theme token layer + scheme sync ----------------
       const SOURCE = 'cyberpunk-2077-theme'
-      let disposeTokens = theme.overrideTokens(SOURCE, tokensFor(state.accent))
-      ctx.effect(function () { return function () { disposeTokens() } })
+      let disposeTokens = function () {}
+      function syncTokens() {
+        disposeTokens()
+        disposeTokens = state.enabled ? theme.overrideTokens(SOURCE, tokensFor(state.accent)) : function () {}
+      }
+      syncTokens()
+      syncEnabledAttrs()
+      ctx.effect(function () {
+        return function () {
+          disposeTokens()
+          document.documentElement.removeAttribute('data-cp-enabled')
+          document.documentElement.removeAttribute('data-cp-perf')
+        }
+      })
       ctx.on('theme/change', function () { patch({}) })
 
       function applyAccent(key) {
-        disposeTokens = theme.overrideTokens(SOURCE, tokensFor(key))
+        if (state.accent === key) return
         patch({ accent: key })
       }
       function setScheme(id) { theme.setTheme(id) }
@@ -151,26 +178,34 @@ export function cyberpunkClientPlugin() {
   --cp-mono: 'Share Tech Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
   --cp-glow: color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent);
 }
-html, body { font-family: var(--cp-font) !important; }
-button { font-family: var(--cp-font) !important; }
-code, pre, kbd, samp { font-family: var(--cp-mono) !important; }
-::selection { background: var(--dsw-alias-brand-primary); color: #08090f; }
-:focus-visible { outline: 1px solid var(--dsw-alias-brand-primary); outline-offset: 1px; }
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
+html[data-cp-enabled],
+html[data-cp-enabled] body { font-family: var(--cp-font) !important; }
+html[data-cp-enabled] button { font-family: var(--cp-font) !important; }
+html[data-cp-enabled] code,
+html[data-cp-enabled] pre,
+html[data-cp-enabled] kbd,
+html[data-cp-enabled] samp { font-family: var(--cp-mono) !important; }
+html[data-cp-enabled] ::selection { background: var(--dsw-alias-brand-primary); color: #08090f; }
+html[data-cp-enabled] :focus-visible { outline: 1px solid var(--dsw-alias-brand-primary); outline-offset: 1px; }
+html[data-cp-enabled] ::-webkit-scrollbar { width: 10px; height: 10px; }
+html[data-cp-enabled] ::-webkit-scrollbar-track { background: transparent; }
+html[data-cp-enabled] ::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, color-mix(in srgb, var(--dsw-alias-brand-primary) 55%, #0b0c14), color-mix(in srgb, var(--dsw-alias-state-success-primary) 40%, #0b0c14));
   border: 2px solid var(--dsw-alias-bg-base);
   border-radius: 6px;
 }
 
 /* HUD typography + terminal touches */
-h1, h2, h3, h4 { letter-spacing: 0.06em; }
-pre { border-left: 2px solid color-mix(in srgb, var(--dsw-alias-state-success-primary) 35%, transparent); }
-input, textarea { caret-color: var(--dsw-alias-brand-primary); }
-input:not([type='checkbox']):not([type='radio']):focus,
-textarea:focus,
-select:focus {
+html[data-cp-enabled] h1,
+html[data-cp-enabled] h2,
+html[data-cp-enabled] h3,
+html[data-cp-enabled] h4 { letter-spacing: 0.06em; }
+html[data-cp-enabled] pre { border-left: 2px solid color-mix(in srgb, var(--dsw-alias-state-success-primary) 35%, transparent); }
+html[data-cp-enabled] input,
+html[data-cp-enabled] textarea { caret-color: var(--dsw-alias-brand-primary); }
+html[data-cp-enabled] input:not([type='checkbox']):not([type='radio']):focus,
+html[data-cp-enabled] textarea:focus,
+html[data-cp-enabled] select:focus {
   outline: none;
   border-color: var(--dsw-alias-brand-primary) !important;
   box-shadow: 0 0 0 1px var(--dsw-alias-brand-primary), 0 0 12px var(--cp-glow);
@@ -179,7 +214,7 @@ select:focus {
 /* user message bubble → cyberpunk diagonal two-corner cut (top-left + bottom-right),
    with a neon cut-edge: the 1px border is clipped along the diagonal, so the cut
    line itself glows */
-[data-chat-flow-kind='user'] [data-time-hover-root] > div:first-child > div:last-child {
+html[data-cp-enabled] [data-chat-flow-kind='user'] [data-time-hover-root] > div:first-child > div:last-child {
   background: color-mix(in srgb, var(--dsw-alias-brand-primary) 14%, var(--dsw-alias-bg-layer-1));
   border: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 50%, transparent);
   border-radius: 0;
@@ -190,7 +225,7 @@ select:focus {
 
 /* tool call groups → a REAL cut-corner card (the underlying rows are chrome-free,
    so the group seat becomes the visible cyberpunk card) */
-[data-chat-flow-kind='tool-call'] {
+html[data-cp-enabled] [data-chat-flow-kind='tool-call'] {
   margin: 2px 0 12px;
   padding: 8px 12px;
   background: color-mix(in srgb, var(--dsw-alias-brand-primary) 5%, var(--dsw-alias-bg-layer-1));
@@ -202,23 +237,23 @@ select:focus {
 }
 
 /* code blocks inside the conversation → two-corner cut too */
-[data-chat-flow-kind] pre {
+html[data-cp-enabled] [data-chat-flow-kind] pre {
   border-radius: 0;
   clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
 }
 
 /* sidebar workspace/session rows → cyberpunk: neon rail, tint, accent text */
-[role='treeitem'] {
+html[data-cp-enabled] [role='treeitem'] {
   position: relative;
   letter-spacing: 0.02em;
   transition: background 120ms ease, color 120ms ease;
 }
-[role='treeitem']:hover {
+html[data-cp-enabled] [role='treeitem']:hover {
   background: color-mix(in srgb, var(--dsw-alias-brand-primary) 6%, transparent);
   color: var(--dsw-alias-brand-primary);
 }
-[role='treeitem']:hover::before,
-[role='treeitem'][aria-selected='true']::before {
+html[data-cp-enabled] [role='treeitem']:hover::before,
+html[data-cp-enabled] [role='treeitem'][aria-selected='true']::before {
   content: '';
   position: absolute;
   left: 0;
@@ -229,7 +264,7 @@ select:focus {
   box-shadow: 0 0 8px var(--cp-glow);
   z-index: 1;
 }
-[role='treeitem'][aria-selected='true'] {
+html[data-cp-enabled] [role='treeitem'][aria-selected='true'] {
   background: color-mix(in srgb, var(--dsw-alias-brand-primary) 10%, transparent);
   color: var(--dsw-alias-brand-primary);
 }
@@ -240,14 +275,14 @@ select:focus {
    untouched (its wordmark keeps only the flowing color + glitch). The New
    Session button is the sidebar root's direct button child carrying the
    14×14 plus icon. */
-[data-slot="sidebar"] > div > button:has(> svg[viewBox="0 0 16 16"][width="14"]) {
+html[data-cp-enabled] [data-slot="sidebar"] > div > button:has(> svg[viewBox="0 0 16 16"][width="14"]) {
   clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
   border-radius: 0;
   border: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 30%, transparent);
   background: color-mix(in srgb, var(--dsw-alias-brand-primary) 8%, transparent);
   transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
 }
-[data-slot="sidebar"] > div > button:has(> svg[viewBox="0 0 16 16"][width="14"]):hover {
+html[data-cp-enabled] [data-slot="sidebar"] > div > button:has(> svg[viewBox="0 0 16 16"][width="14"]):hover {
   background: color-mix(in srgb, var(--dsw-alias-brand-primary) 16%, transparent);
   border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 50%, transparent);
 }
@@ -259,14 +294,14 @@ select:focus {
    cannot escape, not even with position: fixed). The pseudo-element carries
    the cut shape instead: it paints the card fill + neon border + glow and is
    clipped alone, so the menus stay fully visible and clickable. */
-[data-composer-card] {
+html[data-cp-enabled] [data-composer-card] {
   position: relative;
   z-index: 0; /* stacking context so the ::before layer stays under the content */
   background: transparent !important;
   border-color: transparent !important;
   box-shadow: none !important;
 }
-[data-composer-card]::before {
+html[data-cp-enabled] [data-composer-card]::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -281,8 +316,8 @@ select:focus {
 }
 
 /* brand wordmark + whale logo → flowing palette + glitch flicker */
-svg[viewBox="0 0 182 24"],
-svg[viewBox="0 0 23.16 17.04"] {
+html[data-cp-enabled] svg[viewBox="0 0 182 24"],
+html[data-cp-enabled] svg[viewBox="0 0 23.16 17.04"] {
   animation: cp-brand 8s linear infinite, cp-brand-glitch 5s steps(1) infinite;
 }
 @keyframes cp-brand {
@@ -301,9 +336,9 @@ svg[viewBox="0 0 23.16 17.04"] {
 }
 
 /* ambient overlay */
-.cp-overlay { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.cp-layer { position: absolute; inset: 0; }
-.cp-grid {
+html[data-cp-enabled] .cp-overlay { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+html[data-cp-enabled] .cp-layer { position: absolute; inset: 0; }
+html[data-cp-enabled] .cp-grid {
   background-image:
     linear-gradient(to right, color-mix(in srgb, var(--dsw-alias-state-success-primary) 7%, transparent) 1px, transparent 1px),
     linear-gradient(to bottom, color-mix(in srgb, var(--dsw-alias-state-success-primary) 7%, transparent) 1px, transparent 1px);
@@ -311,10 +346,10 @@ svg[viewBox="0 0 23.16 17.04"] {
   -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.9) 25%, transparent 72%);
   mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.9) 25%, transparent 72%);
 }
-.cp-scanlines { background: repeating-linear-gradient(0deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 1px, transparent 1px, transparent 3px); }
-[data-ds-dark-theme] .cp-scanlines { background: repeating-linear-gradient(0deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 3px); }
-.cp-vignette { background: radial-gradient(ellipse at center, transparent 50%, rgba(4,5,10,0.5) 100%); }
-.cp-ribbon {
+html[data-cp-enabled] .cp-scanlines { background: repeating-linear-gradient(0deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 1px, transparent 1px, transparent 3px); }
+html[data-cp-enabled] [data-ds-dark-theme] .cp-scanlines { background: repeating-linear-gradient(0deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 3px); }
+html[data-cp-enabled] .cp-vignette { background: radial-gradient(ellipse at center, transparent 50%, rgba(4,5,10,0.5) 100%); }
+html[data-cp-enabled] .cp-ribbon {
   position: absolute; inset: 0; padding: 2px;
   background: linear-gradient(90deg, #fcee0a 0%, #00f0ff 25%, #ff2d6b 50%, #b026ff 75%, #fcee0a 100%);
   background-size: 200% 100%;
@@ -330,7 +365,7 @@ svg[viewBox="0 0 23.16 17.04"] {
   0% { background-position: 0% 50%; }
   100% { background-position: 200% 50%; }
 }
-.cp-glitch {
+html[data-cp-enabled] .cp-glitch {
   opacity: 0;
   background: linear-gradient(180deg,
     transparent 0%, transparent 24%,
@@ -357,7 +392,7 @@ svg[viewBox="0 0 23.16 17.04"] {
 }
 
 /* shipped LLM stats line → compact one-line chips, color synced with the brand (same keyframes) */
-div:has(+ .cp-status) > span:not([aria-hidden]) {
+html[data-cp-enabled] div:has(+ .cp-status) > span:not([aria-hidden]) {
   display: inline-flex;
   align-items: center;
   margin: 0 2px;
@@ -368,7 +403,7 @@ div:has(+ .cp-status) > span:not([aria-hidden]) {
   clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
   animation: cp-brand 8s linear infinite, cp-stats-glitch 8s steps(1) infinite;
 }
-div:has(+ .cp-status) > span[aria-hidden] { display: none; }
+html[data-cp-enabled] div:has(+ .cp-status) > span[aria-hidden] { display: none; }
 @keyframes cp-stats-glitch {
   0%, 92%, 100% { transform: none; filter: drop-shadow(0 0 6px rgba(0,240,255,0.35)); opacity: 1; }
   93% { transform: translateX(-1px); opacity: 0.85; filter: drop-shadow(1px 0 0 rgba(255,45,85,0.6)) drop-shadow(-1px 0 0 rgba(0,240,255,0.6)); }
@@ -377,32 +412,32 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
 }
 
 /* status strip under the composer stats line */
-.cp-status {
+html[data-cp-enabled] .cp-status {
   display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
   font-family: var(--cp-mono); font-size: 11px; letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--dsw-alias-label-secondary);
 }
-.cp-status-chip {
+html[data-cp-enabled] .cp-status-chip {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 2px 8px; border: 1px solid var(--dsw-alias-border-l2);
   color: var(--dsw-alias-label-secondary);
   clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
 }
-.cp-status-time { color: var(--dsw-alias-brand-primary); border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent); }
-.cp-status-net { color: var(--dsw-alias-state-success-primary); border-color: color-mix(in srgb, var(--dsw-alias-state-success-primary) 45%, transparent); }
-.cp-status-net[data-net='offline'] { color: var(--dsw-alias-state-error-primary); border-color: color-mix(in srgb, var(--dsw-alias-state-error-primary) 45%, transparent); }
-.cp-status-net[data-net='sync'] { color: var(--dsw-alias-state-warn-primary); border-color: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 45%, transparent); }
-.cp-status-dot { animation: cp-dot 2s ease-in-out infinite; }
-.cp-status-net[data-net='offline'] .cp-status-dot,
-.cp-status-net[data-net='sync'] .cp-status-dot { animation: none; }
+html[data-cp-enabled] .cp-status-time { color: var(--dsw-alias-brand-primary); border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent); }
+html[data-cp-enabled] .cp-status-net { color: var(--dsw-alias-state-success-primary); border-color: color-mix(in srgb, var(--dsw-alias-state-success-primary) 45%, transparent); }
+html[data-cp-enabled] .cp-status-net[data-net='offline'] { color: var(--dsw-alias-state-error-primary); border-color: color-mix(in srgb, var(--dsw-alias-state-error-primary) 45%, transparent); }
+html[data-cp-enabled] .cp-status-net[data-net='sync'] { color: var(--dsw-alias-state-warn-primary); border-color: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 45%, transparent); }
+html[data-cp-enabled] .cp-status-dot { animation: cp-dot 2s ease-in-out infinite; }
+html[data-cp-enabled] .cp-status-net[data-net='offline'] .cp-status-dot,
+html[data-cp-enabled] .cp-status-net[data-net='sync'] .cp-status-dot { animation: none; }
 @keyframes cp-dot {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.2; }
 }
-.cp-status--glitch .cp-status-chip { animation: cp-status-glitch 5s steps(1) infinite; }
-.cp-status--glitch .cp-status-chip:nth-child(2) { animation-delay: -1.2s; }
-.cp-status--glitch .cp-status-chip:nth-child(3) { animation-delay: -2.4s; }
-.cp-status--glitch .cp-status-chip:nth-child(4) { animation-delay: -3.6s; }
+html[data-cp-enabled] .cp-status--glitch .cp-status-chip { animation: cp-status-glitch 5s steps(1) infinite; }
+html[data-cp-enabled] .cp-status--glitch .cp-status-chip:nth-child(2) { animation-delay: -1.2s; }
+html[data-cp-enabled] .cp-status--glitch .cp-status-chip:nth-child(3) { animation-delay: -2.4s; }
+html[data-cp-enabled] .cp-status--glitch .cp-status-chip:nth-child(4) { animation-delay: -3.6s; }
 @keyframes cp-status-glitch {
   0%, 88%, 100% { transform: none; text-shadow: none; opacity: 1; }
   89% { transform: translateX(-2px) skewX(-4deg); text-shadow: 2px 0 #ff2d55, -2px 0 #00f0ff; }
@@ -436,6 +471,11 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
 }
 .cp-toggle { display: flex; align-items: center; gap: 10px; padding: 10px 0; cursor: pointer; font-size: 14px; letter-spacing: 0.04em; }
 .cp-toggle input { width: 16px; height: 16px; accent-color: var(--dsw-alias-brand-primary); cursor: pointer; }
+.cp-group--off { opacity: 0.5; }
+.cp-btn:disabled { cursor: not-allowed; opacity: 0.45; filter: none; }
+.cp-toggle input:disabled { cursor: not-allowed; opacity: 0.45; }
+.cp-toggle--master { padding: 12px 0; font-size: 15px; }
+.cp-toggle--master span { font-weight: 700; letter-spacing: 0.08em; }
 
 /* performance tiers — the expensive layers are the full-screen animations
    (flowing ribbon repaints the whole viewport every frame, the glitch layer,
@@ -443,31 +483,32 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
    balanced (default): drop the full-screen glitch layer, thin the scanlines,
    slow the ribbon + brand cycles. eco: everything static — the neon look
    stays, only the motion goes away. */
-html[data-cp-perf='balanced'] .cp-glitch { display: none !important; }
-html[data-cp-perf='balanced'] .cp-ribbon { animation-duration: 18s; }
-html[data-cp-perf='balanced'] svg[viewBox="0 0 182 24"],
-html[data-cp-perf='balanced'] svg[viewBox="0 0 23.16 17.04"] { animation-duration: 12s; }
-html[data-cp-perf='balanced'] .cp-scanlines { background: repeating-linear-gradient(0deg, rgba(0,0,0,0.10) 0px, rgba(0,0,0,0.10) 1px, transparent 1px, transparent 4px); }
-html[data-cp-perf='balanced'] [data-ds-dark-theme] .cp-scanlines { background: repeating-linear-gradient(0deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 4px); }
-html[data-cp-perf='eco'] .cp-ribbon { animation: none !important; }
-html[data-cp-perf='eco'] .cp-glitch { display: none !important; }
-html[data-cp-perf='eco'] .cp-grid { display: none !important; }
-html[data-cp-perf='eco'] .cp-scanlines { display: none !important; }
-html[data-cp-perf='eco'] .cp-vignette { display: none !important; }
-html[data-cp-perf='eco'] svg[viewBox="0 0 182 24"],
-html[data-cp-perf='eco'] svg[viewBox="0 0 23.16 17.04"] { animation: none !important; color: var(--dsw-alias-brand-primary); }
-html[data-cp-perf='eco'] div:has(+ .cp-status) > span:not([aria-hidden]) { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
-html[data-cp-perf='eco'] .cp-status--glitch .cp-status-chip { animation: none !important; }
-html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
+html[data-cp-enabled][data-cp-perf='balanced'] .cp-glitch { display: none !important; }
+html[data-cp-enabled][data-cp-perf='balanced'] .cp-ribbon { animation-duration: 18s; }
+html[data-cp-enabled][data-cp-perf='balanced'] svg[viewBox="0 0 182 24"],
+html[data-cp-enabled][data-cp-perf='balanced'] svg[viewBox="0 0 23.16 17.04"] { animation-duration: 12s; }
+html[data-cp-enabled][data-cp-perf='balanced'] .cp-scanlines { background: repeating-linear-gradient(0deg, rgba(0,0,0,0.10) 0px, rgba(0,0,0,0.10) 1px, transparent 1px, transparent 4px); }
+html[data-cp-enabled][data-cp-perf='balanced'] [data-ds-dark-theme] .cp-scanlines { background: repeating-linear-gradient(0deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 4px); }
+html[data-cp-enabled][data-cp-perf='eco'] .cp-ribbon { animation: none !important; }
+html[data-cp-enabled][data-cp-perf='eco'] .cp-glitch { display: none !important; }
+html[data-cp-enabled][data-cp-perf='eco'] .cp-grid { display: none !important; }
+html[data-cp-enabled][data-cp-perf='eco'] .cp-scanlines { display: none !important; }
+html[data-cp-enabled][data-cp-perf='eco'] .cp-vignette { display: none !important; }
+html[data-cp-enabled][data-cp-perf='eco'] svg[viewBox="0 0 182 24"],
+html[data-cp-enabled][data-cp-perf='eco'] svg[viewBox="0 0 23.16 17.04"] { animation: none !important; color: var(--dsw-alias-brand-primary); }
+html[data-cp-enabled][data-cp-perf='eco'] div:has(+ .cp-status) > span:not([aria-hidden]) { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
+html[data-cp-enabled][data-cp-perf='eco'] .cp-status--glitch .cp-status-chip { animation: none !important; }
+html[data-cp-enabled][data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
 @media (prefers-reduced-motion: reduce) {
-  svg[viewBox="0 0 182 24"], svg[viewBox="0 0 23.16 17.04"] { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
-  div:has(+ .cp-status) > span:not([aria-hidden]) { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
-  [data-slot="sidebar"] > div > button:has(> svg[viewBox="0 0 16 16"][width="14"]) { transition: none; }
-  .cp-glitch { animation: none !important; opacity: 0 !important; }
-  .cp-ribbon { animation: none !important; }
-  .cp-status--glitch .cp-status-chip { animation: none !important; }
-  .cp-status-dot { animation: none !important; }
-  [role='treeitem'] { transition: none; }
+  html[data-cp-enabled] svg[viewBox="0 0 182 24"],
+  html[data-cp-enabled] svg[viewBox="0 0 23.16 17.04"] { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
+  html[data-cp-enabled] div:has(+ .cp-status) > span:not([aria-hidden]) { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
+  html[data-cp-enabled] [data-slot="sidebar"] > div > button:has(> svg[viewBox="0 0 16 16"][width="14"]) { transition: none; }
+  html[data-cp-enabled] .cp-glitch { animation: none !important; opacity: 0 !important; }
+  html[data-cp-enabled] .cp-ribbon { animation: none !important; }
+  html[data-cp-enabled] .cp-status--glitch .cp-status-chip { animation: none !important; }
+  html[data-cp-enabled] .cp-status-dot { animation: none !important; }
+  html[data-cp-enabled] [role='treeitem'] { transition: none; }
   .cp-btn { transition: none; }
 }
 `
@@ -475,9 +516,6 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
       const disposeFonts = styles.insert(FONT_CSS)
       const disposeMain = styles.insert(MAIN_CSS)
       ctx.effect(function () { return function () { disposeFonts(); disposeMain() } })
-
-      // performance tier on <html> so the CSS overrides below can branch on it
-      document.documentElement.setAttribute('data-cp-perf', state.perf)
 
       // ---------------- components ----------------
       function useStore() {
@@ -488,6 +526,7 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
 
       function CyberOverlay() {
         const st = useStore()
+        if (!st.enabled) return null
         const children = []
         if (st.grid) children.push(React.createElement('div', { key: 'grid', className: 'cp-layer cp-grid' }))
         if (st.scanlines) children.push(React.createElement('div', { key: 'scan', className: 'cp-layer cp-scanlines' }))
@@ -506,6 +545,7 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
         const [now, setNow] = React.useState(function () { return new Date() })
         const [net, setNet] = React.useState('sync')
         React.useEffect(function () {
+          if (!st.enabled) return undefined
           let stopClock
           let stopPing
           if (timer !== undefined) stopClock = timer.interval(function () { setNow(new Date()) }, 1000)
@@ -523,7 +563,8 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
             if (stopClock) stopClock()
             if (stopPing) stopPing()
           }
-        }, [])
+        }, [st.enabled])
+        if (!st.enabled) return null
         const netText = net === 'online' ? 'ONLINE' : (net === 'offline' ? 'OFFLINE' : 'SYNC')
         return React.createElement('div', { className: 'cp-status' + (st.statusGlitch ? ' cp-status--glitch' : '') },
           React.createElement('span', { className: 'cp-status-chip cp-status-time' }, 'Local ', timeStr(now)),
@@ -547,11 +588,13 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
       function CyberSettings() {
         const st = useStore()
         const activeScheme = theme.getTheme().active.colorScheme
+        const optGroupClass = 'cp-group' + (st.enabled ? '' : ' cp-group--off')
         const accentBtns = Object.keys(ACCENTS).map(function (key) {
           return React.createElement('button', {
             key: key,
             type: 'button',
             className: 'cp-btn' + (st.accent === key ? ' cp-btn--active' : ''),
+            disabled: !st.enabled,
             onClick: function () { applyAccent(key) },
           }, ACCENTS[key].label)
         })
@@ -561,6 +604,7 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
             key: id,
             type: 'button',
             className: 'cp-btn' + (st.perf === id ? ' cp-btn--active' : ''),
+            disabled: !st.enabled,
             onClick: function () { patch({ perf: id }) },
           }, label)
         })
@@ -571,6 +615,7 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
             key: id,
             type: 'button',
             className: 'cp-btn' + (isActive ? ' cp-btn--active' : '') + (id === 'dark' ? ' cp-btn--dark' : ''),
+            disabled: !st.enabled,
             onClick: function () { setScheme(id) },
           }, label)
         })
@@ -578,34 +623,46 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
           React.createElement('h2', { className: 'cp-settings-title' }, 'Cyberpunk 2077'),
           React.createElement('p', { className: 'cp-settings-sub' }, 'Night City reskin for the DSH shell. Dark mode shows the full neon look.'),
           React.createElement('div', { className: 'cp-group' },
+            React.createElement('div', { className: 'cp-group-label' }, 'Master switch'),
+            React.createElement('label', { className: 'cp-toggle cp-toggle--master' },
+              React.createElement('input', { type: 'checkbox', checked: st.enabled, onChange: function (e) { patch({ enabled: e.target.checked }) } }),
+              React.createElement('span', null, 'Enable Cyberpunk theme'),
+            ),
+            React.createElement('p', { className: 'cp-note' },
+              st.enabled
+                ? 'Theme active. Turn it off to restore the native DSH look; this page stays available.'
+                : 'Theme off — native DSH look restored. Turn it on to reapply the reskin.',
+            ),
+          ),
+          React.createElement('div', { className: optGroupClass },
             React.createElement('div', { className: 'cp-group-label' }, 'Color scheme'),
             React.createElement('div', { className: 'cp-row' }, schemeBtns),
             React.createElement('p', { className: 'cp-note' }, 'Current: ', React.createElement('strong', null, schemeLabel()), ' (', activeScheme === 'dark' ? 'dark palette active' : 'light palette active', ')'),
           ),
-          React.createElement('div', { className: 'cp-group' },
+          React.createElement('div', { className: optGroupClass },
             React.createElement('div', { className: 'cp-group-label' }, 'Accent'),
             React.createElement('div', { className: 'cp-row' }, accentBtns),
           ),
-          React.createElement('div', { className: 'cp-group' },
+          React.createElement('div', { className: optGroupClass },
             React.createElement('div', { className: 'cp-group-label' }, 'Performance'),
             React.createElement('div', { className: 'cp-row' }, perfBtns),
             React.createElement('p', { className: 'cp-note' }, 'Balanced (default): no full-screen glitch, slower ribbon & brand. Eco: all motion off — coolest Mac.'),
           ),
-          React.createElement('div', { className: 'cp-group' },
+          React.createElement('div', { className: optGroupClass },
             React.createElement('label', { className: 'cp-toggle' },
-              React.createElement('input', { type: 'checkbox', checked: st.grid, onChange: function (e) { patch({ grid: e.target.checked }) } }),
+              React.createElement('input', { type: 'checkbox', checked: st.grid, disabled: !st.enabled, onChange: function (e) { patch({ grid: e.target.checked }) } }),
               React.createElement('span', null, 'Grid'),
             ),
             React.createElement('label', { className: 'cp-toggle' },
-              React.createElement('input', { type: 'checkbox', checked: st.scanlines, onChange: function (e) { patch({ scanlines: e.target.checked }) } }),
+              React.createElement('input', { type: 'checkbox', checked: st.scanlines, disabled: !st.enabled, onChange: function (e) { patch({ scanlines: e.target.checked }) } }),
               React.createElement('span', null, 'Scanlines'),
             ),
             React.createElement('label', { className: 'cp-toggle' },
-              React.createElement('input', { type: 'checkbox', checked: st.glitch, onChange: function (e) { patch({ glitch: e.target.checked }) } }),
+              React.createElement('input', { type: 'checkbox', checked: st.glitch, disabled: !st.enabled, onChange: function (e) { patch({ glitch: e.target.checked }) } }),
               React.createElement('span', null, 'Screen glitch'),
             ),
             React.createElement('label', { className: 'cp-toggle' },
-              React.createElement('input', { type: 'checkbox', checked: st.statusGlitch, onChange: function (e) { patch({ statusGlitch: e.target.checked }) } }),
+              React.createElement('input', { type: 'checkbox', checked: st.statusGlitch, disabled: !st.enabled, onChange: function (e) { patch({ statusGlitch: e.target.checked }) } }),
               React.createElement('span', null, 'Status glitch'),
             ),
           ),

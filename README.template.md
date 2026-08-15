@@ -1,6 +1,6 @@
 # dsh-cyberpunk-theme · DSH 赛博朋克 2077 主题
 
-> 把 [DeepSeek Harness](https://github.com/deepseek-ai)（DSH）整个界面换成《赛博朋克 2077》夜之城风格的**深度定制主题**——霓虹配色、CRT 氛围、流动彩带、故障闪烁、全局切角 UI、输入框下方的实时状态条，还带一个独立的设置页。
+> 把 [DeepSeek Harness](https://github.com/deepseek-ai)（DSH）整个界面换成《赛博朋克 2077》夜之城风格的**深度定制主题**——霓虹配色、CRT 氛围、流动彩带、故障闪烁、全局切角 UI、输入框下方的实时状态条，还带一个独立的设置页和**主题总开关**。
 > 以 **标准 DSH bundle 插件** 分发（`dsh plugin add` 一行安装，刷新/重启都不丢），同时保留 **动态 Cordis 插件** 形式（30 秒快速体验，零配置）。
 
 ---
@@ -73,7 +73,7 @@ pnpm dsh web
 
 4. **运行（`cordis_run`）并授权** → 主题立即生效 🎉
 
-**验证是否生效：** 设置页里应该出现 **Cyberpunk 2077** 分区；输入框下方会出现状态条（`LOCAL 时间` / `UPLINK ● 心跳` / `Accent`）；页面四周有流动彩带。
+**验证是否生效：** 设置页里应该出现 **Cyberpunk 2077** 分区（第一项是 **Enable Cyberpunk theme** 总开关）；输入框下方会出现状态条（`LOCAL 时间` / `UPLINK ● 心跳` / `Accent`）；页面四周有流动彩带。
 
 > 💡 **建议暗色模式使用**：设置 → Cyberpunk 2077 → **Night City (Dark)**（或 DSH 自带的外观设置切到暗色）。
 
@@ -115,6 +115,7 @@ pnpm dsh web
 - **霓虹光标**与**输入框聚焦辉光**；标题 HUD 字距；代码块终端色竖条；霓虹滚动条与选区。
 
 ### ⚙️ 设置页（设置 → Cyberpunk 2077）
+- **主题总开关（Enable Cyberpunk theme）**——一键停用整套主题：token 覆盖、氛围层、状态条和全部 CSS 效果都卸载，界面恢复 DSH 原生外观；设置页本身保留，随时可以一键重新开启。关闭时其余选项会禁用置灰。
 - 配色方案：**夜之城（暗色）** / 跟随系统 / 亮色。
 - 强调色：4 套预设，通过 `theme.overrideTokens` 实时切换。
 - **性能档位：Full / Balanced（默认）/ Eco**——Balanced 关闭全屏故障层、加粗扫描线间距、放缓彩带与品牌动画；Eco 全部动画静止（最省电，Mac 不发烫）。发热大户就是全屏流动彩带与故障层的逐帧重绘，两档省电模式直接去掉它们。
@@ -126,6 +127,7 @@ pnpm dsh web
 ## 🛠 工作原理
 
 - **Token 层**：`theme.overrideTokens(source, tokens)` 在活动主题之上叠加一层，presenter 把它投影到 `body` 的 CSS 变量上——因此亮/暗两套配色都能被完整覆盖。
+- **主题总开关**：`<html data-cp-enabled>` 是全部主题 CSS 的前置条件；关闭开关会移除该属性、dispose token 覆盖，并让氛围层/状态条组件返回 `null`。设置页样式刻意不加这个前缀，所以关掉主题后仍能打开设置页重新开启。
 - **Slot 注册**：氛围层注册在 `shell.overlay`（list、可叠加），状态条在 `conversation.composer.dock`，设置页在 `settings.section`。
 - **产品 DOM 定位**：内置 UI 全部通过**稳定属性**（而非哈希类名）来定向：
   - 用户气泡：`data-chat-flow-kind="user"` + `data-time-hover-root`（行内栈的最后一个 `div` 就是气泡本体）
@@ -166,7 +168,8 @@ pnpm dsh web
 
 - **`ACCENTS`** —— 强调色预设。新增一套：给它 `label` + `brand` / `success` / `error` / `warn` 各一组 `{ light, dark }`。
 - **`baseTokens`** —— 与强调色无关的背景/文字/边框 token，每个都是 `{ light, dark }` 一对（DSH 的 13 个 alias token）。
-- **`MAIN_CSS`** —— 所有特效。动画时长是 `@keyframes` 里的 `…s infinite` 值（`cp-ribbon`、`cp-brand`、`cp-glitch`、`cp-stats-glitch`、`cp-status-glitch`、`cp-dot`）；浓度是各处的 alpha / `color-mix` 百分比。
+- **`state` / `patch`** —— 内存设置 store：总开关 `enabled`、强调色、性能档位与各特效开关。`patch()` 负责同步 `data-cp-enabled` / `data-cp-perf` 属性与 token 覆盖层。
+- **`MAIN_CSS`** —— 所有特效，主题选择器都带 `html[data-cp-enabled]` 前缀（总开关），设置页样式例外。动画时长是 `@keyframes` 里的 `…s infinite` 值（`cp-ribbon`、`cp-brand`、`cp-glitch`、`cp-stats-glitch`、`cp-status-glitch`、`cp-dot`）；浓度是各处的 alpha / `color-mix` 百分比。
 
 改完代码后，`pnpm build` 重建永久安装产物（`lib/`），`node scripts/build-readme.cjs` 同步 README 里的动态安装代码块。
 
@@ -181,7 +184,7 @@ dsh-cyberpunk-theme/
 │   ├── client.js           # 构建产物：永久安装的浏览器 bundle（__ModuleLoader__ closure factory）
 │   └── client.js.map
 ├── src/
-│   ├── client.js           # 主题核心：token、CSS、氛围层、状态条、设置页（动态/永久共用）
+│   ├── client.js           # 主题核心：token、CSS、氛围层、状态条、设置页 + 总开关（动态/永久共用）
 │   ├── host.js             # 动态插件 host 一半：私有 ping RPC（心跳）
 │   ├── client/index.js     # 永久安装浏览器端 entry（name/inject/apply）
 │   ├── client/runtime.js   # 永久安装桥接：styles.insert + host.call 的 bundle 等价物

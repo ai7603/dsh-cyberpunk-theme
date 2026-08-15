@@ -1,15 +1,18 @@
 /**
  * Browser smoke test for the permanent cyberpunk theme plugin against a
  * scratch web instance (run `pnpm dsh web --patch scripts/smoke-port.patch.yml`
- * first). The theme has no on/off toggle — its permanent bundle applies at
- * boot — so one probe asserts the complete activation:
+ * first). The theme activates at boot; the probe asserts complete activation,
+ * then flips the settings master switch off and back on:
  *
  *   1. the boot graph contains the dsh-cyberpunk-theme row;
  *   2. the shell.overlay ambient layer exists (.cp-overlay);
  *   3. an open session mounts the composer status strip (.cp-status);
  *   4. the Settings modal contains the Cyberpunk 2077 section;
  *   5. the plugin owns style tags (data-plugin="dsh-cyberpunk-theme");
- *   6. alias tokens are overridden on body (light or dark palette).
+ *   6. alias tokens are overridden on body (light or dark palette);
+ *   7. master switch OFF removes .cp-overlay/.cp-status and
+ *      data-cp-enabled/data-cp-perf while keeping the settings page;
+ *   8. master switch ON restores all of the above.
  */
 import { chromium } from '/Users/allen/Documents/Projects/deepseek-harness/apps/web/node_modules/playwright/index.mjs'
 
@@ -55,16 +58,79 @@ if (active) {
   }
 }
 
-// Settings section registration check: open Settings and look for the page.
+// Settings section registration check: open Settings, click the plugin's nav
+// entry, then confirm the section body (not just the nav label) mounted.
 await page.evaluate(() => {
   const btn = [...document.querySelectorAll('button')].find((b) => (b.textContent || '').trim() === 'Settings')
   if (btn) btn.click()
 })
 let settingsSection = false
-for (let i = 0; i < 20; i++) {
+for (let i = 0; i < 20 && !settingsSection; i++) {
   await page.waitForTimeout(250)
-  settingsSection = await page.evaluate(() => document.body.textContent.includes('Cyberpunk 2077'))
-  if (settingsSection) break
+  const clicked = await page.evaluate(() => {
+    const nav = [...document.querySelectorAll('button')].find(
+      (b) => (b.textContent || '').trim() === 'Cyberpunk 2077',
+    )
+    if (nav) { nav.click(); return true }
+    return false
+  })
+  if (!clicked) continue
+  for (let j = 0; j < 8; j++) {
+    await page.waitForTimeout(200)
+    settingsSection = await page.evaluate(() => Boolean(document.querySelector('.cp-settings-title')))
+    if (settingsSection) break
+  }
+}
+
+// Master switch: turn the theme off, assert native-look state, then back on.
+let master = null
+let masterOff = false
+let masterOn = false
+if (settingsSection) {
+  master = await page.evaluate(() => {
+    const label = [...document.querySelectorAll('.cp-toggle--master')].find(
+      (el) => (el.textContent || '').includes('Enable Cyberpunk theme'),
+    )
+    const input = label?.querySelector('input[type="checkbox"]')
+    return input ? { checked: input.checked } : null
+  })
+
+  if (master?.checked) {
+    await page.evaluate(() => {
+      const label = [...document.querySelectorAll('.cp-toggle--master')].find(
+        (el) => (el.textContent || '').includes('Enable Cyberpunk theme'),
+      )
+      label?.querySelector('input[type="checkbox"]')?.click()
+    })
+    for (let i = 0; i < 20; i++) {
+      await page.waitForTimeout(200)
+      masterOff = await page.evaluate(() => (
+        !document.documentElement.hasAttribute('data-cp-enabled')
+        && !document.documentElement.hasAttribute('data-cp-perf')
+        && !document.querySelector('.cp-overlay')
+        && !document.querySelector('.cp-status')
+        && Boolean(document.querySelector('.cp-settings-title'))
+      ))
+      if (masterOff) break
+    }
+
+    await page.evaluate(() => {
+      const label = [...document.querySelectorAll('.cp-toggle--master')].find(
+        (el) => (el.textContent || '').includes('Enable Cyberpunk theme'),
+      )
+      label?.querySelector('input[type="checkbox"]')?.click()
+    })
+    for (let i = 0; i < 20; i++) {
+      await page.waitForTimeout(200)
+      masterOn = await page.evaluate(() => (
+        document.documentElement.hasAttribute('data-cp-enabled')
+        && document.documentElement.hasAttribute('data-cp-perf')
+        && Boolean(document.querySelector('.cp-overlay'))
+        && Boolean(document.querySelector('.cp-status'))
+      ))
+      if (masterOn) break
+    }
+  }
 }
 
 const result = await page.evaluate(() => {
@@ -83,8 +149,12 @@ const result = await page.evaluate(() => {
     brand: cs.getPropertyValue('--dsw-alias-brand-primary').trim(),
     sidebarFill: cs.getPropertyValue('--dsw-specific-sidebar-fill').trim(),
     perfTier: document.documentElement.getAttribute('data-cp-perf'),
+    enabled: document.documentElement.hasAttribute('data-cp-enabled'),
   }
 })
+result.master = master
+result.masterOff = masterOff
+result.masterOn = masterOn
 console.log(JSON.stringify(result, null, 2))
 console.log('console errors:', consoleErrors.length ? consoleErrors.slice(0, 8) : 'none')
 const interesting = consoleAll.filter((l) => /cyberpunk|theme|font|google|error|warn/i.test(l))
@@ -97,10 +167,14 @@ const ok = active
   && result.styleTags.length >= 2
   && result.bgBase !== ''
   && result.brand !== ''
+  && result.enabled
+  && result.master?.checked !== false
+  && result.masterOff
+  && result.masterOn
 if (!ok) {
   console.error('VERIFY FAILED', JSON.stringify({ active, statusStrip, settingsSection, result }, null, 2))
   process.exitCode = 1
 } else {
-  console.log('VERIFY OK: cyberpunk permanent plugin is active')
+  console.log('VERIFY OK: cyberpunk permanent plugin is active; master switch toggles correctly')
 }
 await browser.close()

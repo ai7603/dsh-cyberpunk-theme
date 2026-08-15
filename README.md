@@ -1,6 +1,6 @@
 # dsh-cyberpunk-theme · DSH 赛博朋克 2077 主题
 
-> 把 [DeepSeek Harness](https://github.com/deepseek-ai)（DSH）整个界面换成《赛博朋克 2077》夜之城风格的**深度定制主题**——霓虹配色、CRT 氛围、流动彩带、故障闪烁、全局切角 UI、输入框下方的实时状态条，还带一个独立的设置页。
+> 把 [DeepSeek Harness](https://github.com/deepseek-ai)（DSH）整个界面换成《赛博朋克 2077》夜之城风格的**深度定制主题**——霓虹配色、CRT 氛围、流动彩带、故障闪烁、全局切角 UI、输入框下方的实时状态条，还带一个独立的设置页和**主题总开关**。
 > 以 **标准 DSH bundle 插件** 分发（`dsh plugin add` 一行安装，刷新/重启都不丢），同时保留 **动态 Cordis 插件** 形式（30 秒快速体验，零配置）。
 
 ---
@@ -135,10 +135,24 @@ pnpm dsh web
 
       // ---------------- shared in-memory store ----------------
       const listeners = new Set()
-      const state = { accent: 'yellow', perf: 'balanced', grid: true, scanlines: true, glitch: true, statusGlitch: true, version: 0 }
+      const state = { enabled: true, accent: 'yellow', perf: 'balanced', grid: true, scanlines: true, glitch: true, statusGlitch: true, version: 0 }
+
+      function syncEnabledAttrs() {
+        if (state.enabled) {
+          document.documentElement.setAttribute('data-cp-enabled', '')
+          document.documentElement.setAttribute('data-cp-perf', state.perf)
+        } else {
+          document.documentElement.removeAttribute('data-cp-enabled')
+          document.documentElement.removeAttribute('data-cp-perf')
+        }
+      }
+
       function patch(p) {
+        const accentChanged = p.accent !== undefined && p.accent !== state.accent
+        const enabledChanged = p.enabled !== undefined && p.enabled !== state.enabled
         Object.assign(state, p)
-        if (p.perf !== undefined) document.documentElement.setAttribute('data-cp-perf', state.perf)
+        if (accentChanged || enabledChanged) syncTokens()
+        if (p.enabled !== undefined || p.perf !== undefined) syncEnabledAttrs()
         state.version += 1
         listeners.forEach(function (fn) { try { fn() } catch (e) {} })
       }
@@ -149,12 +163,24 @@ pnpm dsh web
 
       // ---------------- theme token layer + scheme sync ----------------
       const SOURCE = 'cyberpunk-2077-theme'
-      let disposeTokens = theme.overrideTokens(SOURCE, tokensFor(state.accent))
-      ctx.effect(function () { return function () { disposeTokens() } })
+      let disposeTokens = function () {}
+      function syncTokens() {
+        disposeTokens()
+        disposeTokens = state.enabled ? theme.overrideTokens(SOURCE, tokensFor(state.accent)) : function () {}
+      }
+      syncTokens()
+      syncEnabledAttrs()
+      ctx.effect(function () {
+        return function () {
+          disposeTokens()
+          document.documentElement.removeAttribute('data-cp-enabled')
+          document.documentElement.removeAttribute('data-cp-perf')
+        }
+      })
       ctx.on('theme/change', function () { patch({}) })
 
       function applyAccent(key) {
-        disposeTokens = theme.overrideTokens(SOURCE, tokensFor(key))
+        if (state.accent === key) return
         patch({ accent: key })
       }
       function setScheme(id) { theme.setTheme(id) }
@@ -168,26 +194,34 @@ pnpm dsh web
   --cp-mono: 'Share Tech Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
   --cp-glow: color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent);
 }
-html, body { font-family: var(--cp-font) !important; }
-button { font-family: var(--cp-font) !important; }
-code, pre, kbd, samp { font-family: var(--cp-mono) !important; }
-::selection { background: var(--dsw-alias-brand-primary); color: #08090f; }
-:focus-visible { outline: 1px solid var(--dsw-alias-brand-primary); outline-offset: 1px; }
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
+html[data-cp-enabled],
+html[data-cp-enabled] body { font-family: var(--cp-font) !important; }
+html[data-cp-enabled] button { font-family: var(--cp-font) !important; }
+html[data-cp-enabled] code,
+html[data-cp-enabled] pre,
+html[data-cp-enabled] kbd,
+html[data-cp-enabled] samp { font-family: var(--cp-mono) !important; }
+html[data-cp-enabled] ::selection { background: var(--dsw-alias-brand-primary); color: #08090f; }
+html[data-cp-enabled] :focus-visible { outline: 1px solid var(--dsw-alias-brand-primary); outline-offset: 1px; }
+html[data-cp-enabled] ::-webkit-scrollbar { width: 10px; height: 10px; }
+html[data-cp-enabled] ::-webkit-scrollbar-track { background: transparent; }
+html[data-cp-enabled] ::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, color-mix(in srgb, var(--dsw-alias-brand-primary) 55%, #0b0c14), color-mix(in srgb, var(--dsw-alias-state-success-primary) 40%, #0b0c14));
   border: 2px solid var(--dsw-alias-bg-base);
   border-radius: 6px;
 }
 
 /* HUD typography + terminal touches */
-h1, h2, h3, h4 { letter-spacing: 0.06em; }
-pre { border-left: 2px solid color-mix(in srgb, var(--dsw-alias-state-success-primary) 35%, transparent); }
-input, textarea { caret-color: var(--dsw-alias-brand-primary); }
-input:not([type='checkbox']):not([type='radio']):focus,
-textarea:focus,
-select:focus {
+html[data-cp-enabled] h1,
+html[data-cp-enabled] h2,
+html[data-cp-enabled] h3,
+html[data-cp-enabled] h4 { letter-spacing: 0.06em; }
+html[data-cp-enabled] pre { border-left: 2px solid color-mix(in srgb, var(--dsw-alias-state-success-primary) 35%, transparent); }
+html[data-cp-enabled] input,
+html[data-cp-enabled] textarea { caret-color: var(--dsw-alias-brand-primary); }
+html[data-cp-enabled] input:not([type='checkbox']):not([type='radio']):focus,
+html[data-cp-enabled] textarea:focus,
+html[data-cp-enabled] select:focus {
   outline: none;
   border-color: var(--dsw-alias-brand-primary) !important;
   box-shadow: 0 0 0 1px var(--dsw-alias-brand-primary), 0 0 12px var(--cp-glow);
@@ -196,7 +230,7 @@ select:focus {
 /* user message bubble → cyberpunk diagonal two-corner cut (top-left + bottom-right),
    with a neon cut-edge: the 1px border is clipped along the diagonal, so the cut
    line itself glows */
-[data-chat-flow-kind='user'] [data-time-hover-root] > div:first-child > div:last-child {
+html[data-cp-enabled] [data-chat-flow-kind='user'] [data-time-hover-root] > div:first-child > div:last-child {
   background: color-mix(in srgb, var(--dsw-alias-brand-primary) 14%, var(--dsw-alias-bg-layer-1));
   border: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 50%, transparent);
   border-radius: 0;
@@ -207,7 +241,7 @@ select:focus {
 
 /* tool call groups → a REAL cut-corner card (the underlying rows are chrome-free,
    so the group seat becomes the visible cyberpunk card) */
-[data-chat-flow-kind='tool-call'] {
+html[data-cp-enabled] [data-chat-flow-kind='tool-call'] {
   margin: 2px 0 12px;
   padding: 8px 12px;
   background: color-mix(in srgb, var(--dsw-alias-brand-primary) 5%, var(--dsw-alias-bg-layer-1));
@@ -219,23 +253,23 @@ select:focus {
 }
 
 /* code blocks inside the conversation → two-corner cut too */
-[data-chat-flow-kind] pre {
+html[data-cp-enabled] [data-chat-flow-kind] pre {
   border-radius: 0;
   clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
 }
 
 /* sidebar workspace/session rows → cyberpunk: neon rail, tint, accent text */
-[role='treeitem'] {
+html[data-cp-enabled] [role='treeitem'] {
   position: relative;
   letter-spacing: 0.02em;
   transition: background 120ms ease, color 120ms ease;
 }
-[role='treeitem']:hover {
+html[data-cp-enabled] [role='treeitem']:hover {
   background: color-mix(in srgb, var(--dsw-alias-brand-primary) 6%, transparent);
   color: var(--dsw-alias-brand-primary);
 }
-[role='treeitem']:hover::before,
-[role='treeitem'][aria-selected='true']::before {
+html[data-cp-enabled] [role='treeitem']:hover::before,
+html[data-cp-enabled] [role='treeitem'][aria-selected='true']::before {
   content: '';
   position: absolute;
   left: 0;
@@ -246,7 +280,7 @@ select:focus {
   box-shadow: 0 0 8px var(--cp-glow);
   z-index: 1;
 }
-[role='treeitem'][aria-selected='true'] {
+html[data-cp-enabled] [role='treeitem'][aria-selected='true'] {
   background: color-mix(in srgb, var(--dsw-alias-brand-primary) 10%, transparent);
   color: var(--dsw-alias-brand-primary);
 }
@@ -257,14 +291,14 @@ select:focus {
    untouched (its wordmark keeps only the flowing color + glitch). The New
    Session button is the sidebar root's direct button child carrying the
    14×14 plus icon. */
-[data-slot="sidebar"] > div > button:has(> svg[viewBox="0 0 16 16"][width="14"]) {
+html[data-cp-enabled] [data-slot="sidebar"] > div > button:has(> svg[viewBox="0 0 16 16"][width="14"]) {
   clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
   border-radius: 0;
   border: 1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 30%, transparent);
   background: color-mix(in srgb, var(--dsw-alias-brand-primary) 8%, transparent);
   transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
 }
-[data-slot="sidebar"] > div > button:has(> svg[viewBox="0 0 16 16"][width="14"]):hover {
+html[data-cp-enabled] [data-slot="sidebar"] > div > button:has(> svg[viewBox="0 0 16 16"][width="14"]):hover {
   background: color-mix(in srgb, var(--dsw-alias-brand-primary) 16%, transparent);
   border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 50%, transparent);
 }
@@ -276,14 +310,14 @@ select:focus {
    cannot escape, not even with position: fixed). The pseudo-element carries
    the cut shape instead: it paints the card fill + neon border + glow and is
    clipped alone, so the menus stay fully visible and clickable. */
-[data-composer-card] {
+html[data-cp-enabled] [data-composer-card] {
   position: relative;
   z-index: 0; /* stacking context so the ::before layer stays under the content */
   background: transparent !important;
   border-color: transparent !important;
   box-shadow: none !important;
 }
-[data-composer-card]::before {
+html[data-cp-enabled] [data-composer-card]::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -298,8 +332,8 @@ select:focus {
 }
 
 /* brand wordmark + whale logo → flowing palette + glitch flicker */
-svg[viewBox="0 0 182 24"],
-svg[viewBox="0 0 23.16 17.04"] {
+html[data-cp-enabled] svg[viewBox="0 0 182 24"],
+html[data-cp-enabled] svg[viewBox="0 0 23.16 17.04"] {
   animation: cp-brand 8s linear infinite, cp-brand-glitch 5s steps(1) infinite;
 }
 @keyframes cp-brand {
@@ -318,9 +352,9 @@ svg[viewBox="0 0 23.16 17.04"] {
 }
 
 /* ambient overlay */
-.cp-overlay { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.cp-layer { position: absolute; inset: 0; }
-.cp-grid {
+html[data-cp-enabled] .cp-overlay { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+html[data-cp-enabled] .cp-layer { position: absolute; inset: 0; }
+html[data-cp-enabled] .cp-grid {
   background-image:
     linear-gradient(to right, color-mix(in srgb, var(--dsw-alias-state-success-primary) 7%, transparent) 1px, transparent 1px),
     linear-gradient(to bottom, color-mix(in srgb, var(--dsw-alias-state-success-primary) 7%, transparent) 1px, transparent 1px);
@@ -328,10 +362,10 @@ svg[viewBox="0 0 23.16 17.04"] {
   -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.9) 25%, transparent 72%);
   mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.9) 25%, transparent 72%);
 }
-.cp-scanlines { background: repeating-linear-gradient(0deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 1px, transparent 1px, transparent 3px); }
-[data-ds-dark-theme] .cp-scanlines { background: repeating-linear-gradient(0deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 3px); }
-.cp-vignette { background: radial-gradient(ellipse at center, transparent 50%, rgba(4,5,10,0.5) 100%); }
-.cp-ribbon {
+html[data-cp-enabled] .cp-scanlines { background: repeating-linear-gradient(0deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 1px, transparent 1px, transparent 3px); }
+html[data-cp-enabled] [data-ds-dark-theme] .cp-scanlines { background: repeating-linear-gradient(0deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 3px); }
+html[data-cp-enabled] .cp-vignette { background: radial-gradient(ellipse at center, transparent 50%, rgba(4,5,10,0.5) 100%); }
+html[data-cp-enabled] .cp-ribbon {
   position: absolute; inset: 0; padding: 2px;
   background: linear-gradient(90deg, #fcee0a 0%, #00f0ff 25%, #ff2d6b 50%, #b026ff 75%, #fcee0a 100%);
   background-size: 200% 100%;
@@ -347,7 +381,7 @@ svg[viewBox="0 0 23.16 17.04"] {
   0% { background-position: 0% 50%; }
   100% { background-position: 200% 50%; }
 }
-.cp-glitch {
+html[data-cp-enabled] .cp-glitch {
   opacity: 0;
   background: linear-gradient(180deg,
     transparent 0%, transparent 24%,
@@ -374,7 +408,7 @@ svg[viewBox="0 0 23.16 17.04"] {
 }
 
 /* shipped LLM stats line → compact one-line chips, color synced with the brand (same keyframes) */
-div:has(+ .cp-status) > span:not([aria-hidden]) {
+html[data-cp-enabled] div:has(+ .cp-status) > span:not([aria-hidden]) {
   display: inline-flex;
   align-items: center;
   margin: 0 2px;
@@ -385,7 +419,7 @@ div:has(+ .cp-status) > span:not([aria-hidden]) {
   clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
   animation: cp-brand 8s linear infinite, cp-stats-glitch 8s steps(1) infinite;
 }
-div:has(+ .cp-status) > span[aria-hidden] { display: none; }
+html[data-cp-enabled] div:has(+ .cp-status) > span[aria-hidden] { display: none; }
 @keyframes cp-stats-glitch {
   0%, 92%, 100% { transform: none; filter: drop-shadow(0 0 6px rgba(0,240,255,0.35)); opacity: 1; }
   93% { transform: translateX(-1px); opacity: 0.85; filter: drop-shadow(1px 0 0 rgba(255,45,85,0.6)) drop-shadow(-1px 0 0 rgba(0,240,255,0.6)); }
@@ -394,32 +428,32 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
 }
 
 /* status strip under the composer stats line */
-.cp-status {
+html[data-cp-enabled] .cp-status {
   display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
   font-family: var(--cp-mono); font-size: 11px; letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--dsw-alias-label-secondary);
 }
-.cp-status-chip {
+html[data-cp-enabled] .cp-status-chip {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 2px 8px; border: 1px solid var(--dsw-alias-border-l2);
   color: var(--dsw-alias-label-secondary);
   clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
 }
-.cp-status-time { color: var(--dsw-alias-brand-primary); border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent); }
-.cp-status-net { color: var(--dsw-alias-state-success-primary); border-color: color-mix(in srgb, var(--dsw-alias-state-success-primary) 45%, transparent); }
-.cp-status-net[data-net='offline'] { color: var(--dsw-alias-state-error-primary); border-color: color-mix(in srgb, var(--dsw-alias-state-error-primary) 45%, transparent); }
-.cp-status-net[data-net='sync'] { color: var(--dsw-alias-state-warn-primary); border-color: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 45%, transparent); }
-.cp-status-dot { animation: cp-dot 2s ease-in-out infinite; }
-.cp-status-net[data-net='offline'] .cp-status-dot,
-.cp-status-net[data-net='sync'] .cp-status-dot { animation: none; }
+html[data-cp-enabled] .cp-status-time { color: var(--dsw-alias-brand-primary); border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent); }
+html[data-cp-enabled] .cp-status-net { color: var(--dsw-alias-state-success-primary); border-color: color-mix(in srgb, var(--dsw-alias-state-success-primary) 45%, transparent); }
+html[data-cp-enabled] .cp-status-net[data-net='offline'] { color: var(--dsw-alias-state-error-primary); border-color: color-mix(in srgb, var(--dsw-alias-state-error-primary) 45%, transparent); }
+html[data-cp-enabled] .cp-status-net[data-net='sync'] { color: var(--dsw-alias-state-warn-primary); border-color: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 45%, transparent); }
+html[data-cp-enabled] .cp-status-dot { animation: cp-dot 2s ease-in-out infinite; }
+html[data-cp-enabled] .cp-status-net[data-net='offline'] .cp-status-dot,
+html[data-cp-enabled] .cp-status-net[data-net='sync'] .cp-status-dot { animation: none; }
 @keyframes cp-dot {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.2; }
 }
-.cp-status--glitch .cp-status-chip { animation: cp-status-glitch 5s steps(1) infinite; }
-.cp-status--glitch .cp-status-chip:nth-child(2) { animation-delay: -1.2s; }
-.cp-status--glitch .cp-status-chip:nth-child(3) { animation-delay: -2.4s; }
-.cp-status--glitch .cp-status-chip:nth-child(4) { animation-delay: -3.6s; }
+html[data-cp-enabled] .cp-status--glitch .cp-status-chip { animation: cp-status-glitch 5s steps(1) infinite; }
+html[data-cp-enabled] .cp-status--glitch .cp-status-chip:nth-child(2) { animation-delay: -1.2s; }
+html[data-cp-enabled] .cp-status--glitch .cp-status-chip:nth-child(3) { animation-delay: -2.4s; }
+html[data-cp-enabled] .cp-status--glitch .cp-status-chip:nth-child(4) { animation-delay: -3.6s; }
 @keyframes cp-status-glitch {
   0%, 88%, 100% { transform: none; text-shadow: none; opacity: 1; }
   89% { transform: translateX(-2px) skewX(-4deg); text-shadow: 2px 0 #ff2d55, -2px 0 #00f0ff; }
@@ -453,6 +487,11 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
 }
 .cp-toggle { display: flex; align-items: center; gap: 10px; padding: 10px 0; cursor: pointer; font-size: 14px; letter-spacing: 0.04em; }
 .cp-toggle input { width: 16px; height: 16px; accent-color: var(--dsw-alias-brand-primary); cursor: pointer; }
+.cp-group--off { opacity: 0.5; }
+.cp-btn:disabled { cursor: not-allowed; opacity: 0.45; filter: none; }
+.cp-toggle input:disabled { cursor: not-allowed; opacity: 0.45; }
+.cp-toggle--master { padding: 12px 0; font-size: 15px; }
+.cp-toggle--master span { font-weight: 700; letter-spacing: 0.08em; }
 
 /* performance tiers — the expensive layers are the full-screen animations
    (flowing ribbon repaints the whole viewport every frame, the glitch layer,
@@ -460,31 +499,32 @@ div:has(+ .cp-status) > span[aria-hidden] { display: none; }
    balanced (default): drop the full-screen glitch layer, thin the scanlines,
    slow the ribbon + brand cycles. eco: everything static — the neon look
    stays, only the motion goes away. */
-html[data-cp-perf='balanced'] .cp-glitch { display: none !important; }
-html[data-cp-perf='balanced'] .cp-ribbon { animation-duration: 18s; }
-html[data-cp-perf='balanced'] svg[viewBox="0 0 182 24"],
-html[data-cp-perf='balanced'] svg[viewBox="0 0 23.16 17.04"] { animation-duration: 12s; }
-html[data-cp-perf='balanced'] .cp-scanlines { background: repeating-linear-gradient(0deg, rgba(0,0,0,0.10) 0px, rgba(0,0,0,0.10) 1px, transparent 1px, transparent 4px); }
-html[data-cp-perf='balanced'] [data-ds-dark-theme] .cp-scanlines { background: repeating-linear-gradient(0deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 4px); }
-html[data-cp-perf='eco'] .cp-ribbon { animation: none !important; }
-html[data-cp-perf='eco'] .cp-glitch { display: none !important; }
-html[data-cp-perf='eco'] .cp-grid { display: none !important; }
-html[data-cp-perf='eco'] .cp-scanlines { display: none !important; }
-html[data-cp-perf='eco'] .cp-vignette { display: none !important; }
-html[data-cp-perf='eco'] svg[viewBox="0 0 182 24"],
-html[data-cp-perf='eco'] svg[viewBox="0 0 23.16 17.04"] { animation: none !important; color: var(--dsw-alias-brand-primary); }
-html[data-cp-perf='eco'] div:has(+ .cp-status) > span:not([aria-hidden]) { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
-html[data-cp-perf='eco'] .cp-status--glitch .cp-status-chip { animation: none !important; }
-html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
+html[data-cp-enabled][data-cp-perf='balanced'] .cp-glitch { display: none !important; }
+html[data-cp-enabled][data-cp-perf='balanced'] .cp-ribbon { animation-duration: 18s; }
+html[data-cp-enabled][data-cp-perf='balanced'] svg[viewBox="0 0 182 24"],
+html[data-cp-enabled][data-cp-perf='balanced'] svg[viewBox="0 0 23.16 17.04"] { animation-duration: 12s; }
+html[data-cp-enabled][data-cp-perf='balanced'] .cp-scanlines { background: repeating-linear-gradient(0deg, rgba(0,0,0,0.10) 0px, rgba(0,0,0,0.10) 1px, transparent 1px, transparent 4px); }
+html[data-cp-enabled][data-cp-perf='balanced'] [data-ds-dark-theme] .cp-scanlines { background: repeating-linear-gradient(0deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 4px); }
+html[data-cp-enabled][data-cp-perf='eco'] .cp-ribbon { animation: none !important; }
+html[data-cp-enabled][data-cp-perf='eco'] .cp-glitch { display: none !important; }
+html[data-cp-enabled][data-cp-perf='eco'] .cp-grid { display: none !important; }
+html[data-cp-enabled][data-cp-perf='eco'] .cp-scanlines { display: none !important; }
+html[data-cp-enabled][data-cp-perf='eco'] .cp-vignette { display: none !important; }
+html[data-cp-enabled][data-cp-perf='eco'] svg[viewBox="0 0 182 24"],
+html[data-cp-enabled][data-cp-perf='eco'] svg[viewBox="0 0 23.16 17.04"] { animation: none !important; color: var(--dsw-alias-brand-primary); }
+html[data-cp-enabled][data-cp-perf='eco'] div:has(+ .cp-status) > span:not([aria-hidden]) { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
+html[data-cp-enabled][data-cp-perf='eco'] .cp-status--glitch .cp-status-chip { animation: none !important; }
+html[data-cp-enabled][data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
 @media (prefers-reduced-motion: reduce) {
-  svg[viewBox="0 0 182 24"], svg[viewBox="0 0 23.16 17.04"] { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
-  div:has(+ .cp-status) > span:not([aria-hidden]) { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
-  [data-slot="sidebar"] > div > button:has(> svg[viewBox="0 0 16 16"][width="14"]) { transition: none; }
-  .cp-glitch { animation: none !important; opacity: 0 !important; }
-  .cp-ribbon { animation: none !important; }
-  .cp-status--glitch .cp-status-chip { animation: none !important; }
-  .cp-status-dot { animation: none !important; }
-  [role='treeitem'] { transition: none; }
+  html[data-cp-enabled] svg[viewBox="0 0 182 24"],
+  html[data-cp-enabled] svg[viewBox="0 0 23.16 17.04"] { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
+  html[data-cp-enabled] div:has(+ .cp-status) > span:not([aria-hidden]) { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
+  html[data-cp-enabled] [data-slot="sidebar"] > div > button:has(> svg[viewBox="0 0 16 16"][width="14"]) { transition: none; }
+  html[data-cp-enabled] .cp-glitch { animation: none !important; opacity: 0 !important; }
+  html[data-cp-enabled] .cp-ribbon { animation: none !important; }
+  html[data-cp-enabled] .cp-status--glitch .cp-status-chip { animation: none !important; }
+  html[data-cp-enabled] .cp-status-dot { animation: none !important; }
+  html[data-cp-enabled] [role='treeitem'] { transition: none; }
   .cp-btn { transition: none; }
 }
 `
@@ -492,9 +532,6 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
       const disposeFonts = styles.insert(FONT_CSS)
       const disposeMain = styles.insert(MAIN_CSS)
       ctx.effect(function () { return function () { disposeFonts(); disposeMain() } })
-
-      // performance tier on <html> so the CSS overrides below can branch on it
-      document.documentElement.setAttribute('data-cp-perf', state.perf)
 
       // ---------------- components ----------------
       function useStore() {
@@ -505,6 +542,7 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
 
       function CyberOverlay() {
         const st = useStore()
+        if (!st.enabled) return null
         const children = []
         if (st.grid) children.push(React.createElement('div', { key: 'grid', className: 'cp-layer cp-grid' }))
         if (st.scanlines) children.push(React.createElement('div', { key: 'scan', className: 'cp-layer cp-scanlines' }))
@@ -523,6 +561,7 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
         const [now, setNow] = React.useState(function () { return new Date() })
         const [net, setNet] = React.useState('sync')
         React.useEffect(function () {
+          if (!st.enabled) return undefined
           let stopClock
           let stopPing
           if (timer !== undefined) stopClock = timer.interval(function () { setNow(new Date()) }, 1000)
@@ -540,7 +579,8 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
             if (stopClock) stopClock()
             if (stopPing) stopPing()
           }
-        }, [])
+        }, [st.enabled])
+        if (!st.enabled) return null
         const netText = net === 'online' ? 'ONLINE' : (net === 'offline' ? 'OFFLINE' : 'SYNC')
         return React.createElement('div', { className: 'cp-status' + (st.statusGlitch ? ' cp-status--glitch' : '') },
           React.createElement('span', { className: 'cp-status-chip cp-status-time' }, 'Local ', timeStr(now)),
@@ -564,11 +604,13 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
       function CyberSettings() {
         const st = useStore()
         const activeScheme = theme.getTheme().active.colorScheme
+        const optGroupClass = 'cp-group' + (st.enabled ? '' : ' cp-group--off')
         const accentBtns = Object.keys(ACCENTS).map(function (key) {
           return React.createElement('button', {
             key: key,
             type: 'button',
             className: 'cp-btn' + (st.accent === key ? ' cp-btn--active' : ''),
+            disabled: !st.enabled,
             onClick: function () { applyAccent(key) },
           }, ACCENTS[key].label)
         })
@@ -578,6 +620,7 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
             key: id,
             type: 'button',
             className: 'cp-btn' + (st.perf === id ? ' cp-btn--active' : ''),
+            disabled: !st.enabled,
             onClick: function () { patch({ perf: id }) },
           }, label)
         })
@@ -588,6 +631,7 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
             key: id,
             type: 'button',
             className: 'cp-btn' + (isActive ? ' cp-btn--active' : '') + (id === 'dark' ? ' cp-btn--dark' : ''),
+            disabled: !st.enabled,
             onClick: function () { setScheme(id) },
           }, label)
         })
@@ -595,34 +639,46 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
           React.createElement('h2', { className: 'cp-settings-title' }, 'Cyberpunk 2077'),
           React.createElement('p', { className: 'cp-settings-sub' }, 'Night City reskin for the DSH shell. Dark mode shows the full neon look.'),
           React.createElement('div', { className: 'cp-group' },
+            React.createElement('div', { className: 'cp-group-label' }, 'Master switch'),
+            React.createElement('label', { className: 'cp-toggle cp-toggle--master' },
+              React.createElement('input', { type: 'checkbox', checked: st.enabled, onChange: function (e) { patch({ enabled: e.target.checked }) } }),
+              React.createElement('span', null, 'Enable Cyberpunk theme'),
+            ),
+            React.createElement('p', { className: 'cp-note' },
+              st.enabled
+                ? 'Theme active. Turn it off to restore the native DSH look; this page stays available.'
+                : 'Theme off — native DSH look restored. Turn it on to reapply the reskin.',
+            ),
+          ),
+          React.createElement('div', { className: optGroupClass },
             React.createElement('div', { className: 'cp-group-label' }, 'Color scheme'),
             React.createElement('div', { className: 'cp-row' }, schemeBtns),
             React.createElement('p', { className: 'cp-note' }, 'Current: ', React.createElement('strong', null, schemeLabel()), ' (', activeScheme === 'dark' ? 'dark palette active' : 'light palette active', ')'),
           ),
-          React.createElement('div', { className: 'cp-group' },
+          React.createElement('div', { className: optGroupClass },
             React.createElement('div', { className: 'cp-group-label' }, 'Accent'),
             React.createElement('div', { className: 'cp-row' }, accentBtns),
           ),
-          React.createElement('div', { className: 'cp-group' },
+          React.createElement('div', { className: optGroupClass },
             React.createElement('div', { className: 'cp-group-label' }, 'Performance'),
             React.createElement('div', { className: 'cp-row' }, perfBtns),
             React.createElement('p', { className: 'cp-note' }, 'Balanced (default): no full-screen glitch, slower ribbon & brand. Eco: all motion off — coolest Mac.'),
           ),
-          React.createElement('div', { className: 'cp-group' },
+          React.createElement('div', { className: optGroupClass },
             React.createElement('label', { className: 'cp-toggle' },
-              React.createElement('input', { type: 'checkbox', checked: st.grid, onChange: function (e) { patch({ grid: e.target.checked }) } }),
+              React.createElement('input', { type: 'checkbox', checked: st.grid, disabled: !st.enabled, onChange: function (e) { patch({ grid: e.target.checked }) } }),
               React.createElement('span', null, 'Grid'),
             ),
             React.createElement('label', { className: 'cp-toggle' },
-              React.createElement('input', { type: 'checkbox', checked: st.scanlines, onChange: function (e) { patch({ scanlines: e.target.checked }) } }),
+              React.createElement('input', { type: 'checkbox', checked: st.scanlines, disabled: !st.enabled, onChange: function (e) { patch({ scanlines: e.target.checked }) } }),
               React.createElement('span', null, 'Scanlines'),
             ),
             React.createElement('label', { className: 'cp-toggle' },
-              React.createElement('input', { type: 'checkbox', checked: st.glitch, onChange: function (e) { patch({ glitch: e.target.checked }) } }),
+              React.createElement('input', { type: 'checkbox', checked: st.glitch, disabled: !st.enabled, onChange: function (e) { patch({ glitch: e.target.checked }) } }),
               React.createElement('span', null, 'Screen glitch'),
             ),
             React.createElement('label', { className: 'cp-toggle' },
-              React.createElement('input', { type: 'checkbox', checked: st.statusGlitch, onChange: function (e) { patch({ statusGlitch: e.target.checked }) } }),
+              React.createElement('input', { type: 'checkbox', checked: st.statusGlitch, disabled: !st.enabled, onChange: function (e) { patch({ statusGlitch: e.target.checked }) } }),
               React.createElement('span', null, 'Status glitch'),
             ),
           ),
@@ -660,7 +716,7 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
 
 4. **运行（`cordis_run`）并授权** → 主题立即生效 🎉
 
-**验证是否生效：** 设置页里应该出现 **Cyberpunk 2077** 分区；输入框下方会出现状态条（`LOCAL 时间` / `UPLINK ● 心跳` / `Accent`）；页面四周有流动彩带。
+**验证是否生效：** 设置页里应该出现 **Cyberpunk 2077** 分区（第一项是 **Enable Cyberpunk theme** 总开关）；输入框下方会出现状态条（`LOCAL 时间` / `UPLINK ● 心跳` / `Accent`）；页面四周有流动彩带。
 
 > 💡 **建议暗色模式使用**：设置 → Cyberpunk 2077 → **Night City (Dark)**（或 DSH 自带的外观设置切到暗色）。
 
@@ -702,6 +758,7 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
 - **霓虹光标**与**输入框聚焦辉光**；标题 HUD 字距；代码块终端色竖条；霓虹滚动条与选区。
 
 ### ⚙️ 设置页（设置 → Cyberpunk 2077）
+- **主题总开关（Enable Cyberpunk theme）**——一键停用整套主题：token 覆盖、氛围层、状态条和全部 CSS 效果都卸载，界面恢复 DSH 原生外观；设置页本身保留，随时可以一键重新开启。关闭时其余选项会禁用置灰。
 - 配色方案：**夜之城（暗色）** / 跟随系统 / 亮色。
 - 强调色：4 套预设，通过 `theme.overrideTokens` 实时切换。
 - **性能档位：Full / Balanced（默认）/ Eco**——Balanced 关闭全屏故障层、加粗扫描线间距、放缓彩带与品牌动画；Eco 全部动画静止（最省电，Mac 不发烫）。发热大户就是全屏流动彩带与故障层的逐帧重绘，两档省电模式直接去掉它们。
@@ -713,6 +770,7 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
 ## 🛠 工作原理
 
 - **Token 层**：`theme.overrideTokens(source, tokens)` 在活动主题之上叠加一层，presenter 把它投影到 `body` 的 CSS 变量上——因此亮/暗两套配色都能被完整覆盖。
+- **主题总开关**：`<html data-cp-enabled>` 是全部主题 CSS 的前置条件；关闭开关会移除该属性、dispose token 覆盖，并让氛围层/状态条组件返回 `null`。设置页样式刻意不加这个前缀，所以关掉主题后仍能打开设置页重新开启。
 - **Slot 注册**：氛围层注册在 `shell.overlay`（list、可叠加），状态条在 `conversation.composer.dock`，设置页在 `settings.section`。
 - **产品 DOM 定位**：内置 UI 全部通过**稳定属性**（而非哈希类名）来定向：
   - 用户气泡：`data-chat-flow-kind="user"` + `data-time-hover-root`（行内栈的最后一个 `div` 就是气泡本体）
@@ -753,7 +811,8 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
 
 - **`ACCENTS`** —— 强调色预设。新增一套：给它 `label` + `brand` / `success` / `error` / `warn` 各一组 `{ light, dark }`。
 - **`baseTokens`** —— 与强调色无关的背景/文字/边框 token，每个都是 `{ light, dark }` 一对（DSH 的 13 个 alias token）。
-- **`MAIN_CSS`** —— 所有特效。动画时长是 `@keyframes` 里的 `…s infinite` 值（`cp-ribbon`、`cp-brand`、`cp-glitch`、`cp-stats-glitch`、`cp-status-glitch`、`cp-dot`）；浓度是各处的 alpha / `color-mix` 百分比。
+- **`state` / `patch`** —— 内存设置 store：总开关 `enabled`、强调色、性能档位与各特效开关。`patch()` 负责同步 `data-cp-enabled` / `data-cp-perf` 属性与 token 覆盖层。
+- **`MAIN_CSS`** —— 所有特效，主题选择器都带 `html[data-cp-enabled]` 前缀（总开关），设置页样式例外。动画时长是 `@keyframes` 里的 `…s infinite` 值（`cp-ribbon`、`cp-brand`、`cp-glitch`、`cp-stats-glitch`、`cp-status-glitch`、`cp-dot`）；浓度是各处的 alpha / `color-mix` 百分比。
 
 改完代码后，`pnpm build` 重建永久安装产物（`lib/`），`node scripts/build-readme.cjs` 同步 README 里的动态安装代码块。
 
@@ -768,7 +827,7 @@ dsh-cyberpunk-theme/
 │   ├── client.js           # 构建产物：永久安装的浏览器 bundle（__ModuleLoader__ closure factory）
 │   └── client.js.map
 ├── src/
-│   ├── client.js           # 主题核心：token、CSS、氛围层、状态条、设置页（动态/永久共用）
+│   ├── client.js           # 主题核心：token、CSS、氛围层、状态条、设置页 + 总开关（动态/永久共用）
 │   ├── host.js             # 动态插件 host 一半：私有 ping RPC（心跳）
 │   ├── client/index.js     # 永久安装浏览器端 entry（name/inject/apply）
 │   ├── client/runtime.js   # 永久安装桥接：styles.insert + host.call 的 bundle 等价物
