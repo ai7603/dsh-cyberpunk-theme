@@ -119,7 +119,12 @@ export function cyberpunkClientPlugin() {
 
       // ---------------- shared in-memory store ----------------
       const listeners = new Set()
-      const state = { enabled: true, accent: 'yellow', perf: 'balanced', grid: true, scanlines: true, glitch: true, statusGlitch: true, version: 0 }
+      // Default performance tier is ECO: the coolest static shell with only
+      // the intermittent glitch flashes. Balanced and Full are opt-in.
+      const DEFAULT_PERF = 'eco'
+      // Grid + scanlines stay off until the user opts in (Full enables them
+      // automatically; Balanced defaults them to off when re-entered).
+      const state = { enabled: true, accent: 'yellow', perf: DEFAULT_PERF, grid: false, scanlines: false, glitch: true, statusGlitch: true, version: 0 }
 
       function syncEnabledAttrs() {
         if (state.enabled) {
@@ -168,6 +173,20 @@ export function cyberpunkClientPlugin() {
         patch({ accent: key })
       }
       function setScheme(id) { theme.setTheme(id) }
+      function setPerf(id) {
+        const p = { perf: id }
+        // Tier defaults: Full turns the ambient grid/scanlines on; Balanced
+        // resets them to off when entered from another tier. Toggles flipped
+        // while staying in Balanced are preserved.
+        if (id === 'full') {
+          p.grid = true
+          p.scanlines = true
+        } else if (id === 'balanced' && state.perf !== 'balanced') {
+          p.grid = false
+          p.scanlines = false
+        }
+        patch(p)
+      }
 
       // ---------------- styles ----------------
       const FONT_CSS = "@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Chakra+Petch:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');"
@@ -318,6 +337,18 @@ html[data-cp-enabled] [data-composer-card]::before {
 /* brand wordmark + whale logo → flowing palette + glitch flicker */
 html[data-cp-enabled] svg[viewBox="0 0 182 24"],
 html[data-cp-enabled] svg[viewBox="0 0 23.16 17.04"] {
+  animation: cp-brand 8s linear infinite, cp-brand-glitch 5s steps(1) infinite;
+}
+/* empty-session hero: headline + Preview badge follow the little whale's
+   flowing color and RGB glitch (they are the fish hitbox span's siblings) */
+html[data-cp-enabled] span:has(> svg[viewBox="0 0 23.16 17.04"]) + span {
+  color: var(--dsw-alias-brand-primary);
+  animation: cp-brand 8s linear infinite, cp-brand-glitch 5s steps(1) infinite;
+}
+html[data-cp-enabled] span:has(> svg[viewBox="0 0 23.16 17.04"]) + span + span {
+  color: var(--dsw-alias-brand-primary);
+  background: color-mix(in srgb, var(--dsw-alias-brand-primary) 14%, transparent);
+  border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent);
   animation: cp-brand 8s linear infinite, cp-brand-glitch 5s steps(1) infinite;
 }
 @keyframes cp-brand {
@@ -526,6 +557,8 @@ html[data-cp-enabled][data-cp-perf='balanced'] [data-ds-dark-theme] .cp-scanline
 html[data-cp-enabled][data-cp-perf='balanced'] .cp-vignette { background: radial-gradient(ellipse at center, transparent 58%, rgba(4,5,10,0.35) 100%); }
 html[data-cp-enabled][data-cp-perf='balanced'] svg[viewBox="0 0 182 24"],
 html[data-cp-enabled][data-cp-perf='balanced'] svg[viewBox="0 0 23.16 17.04"] { animation: cp-brand-glitch 5s steps(1) infinite; color: var(--dsw-alias-brand-primary); }
+html[data-cp-enabled][data-cp-perf='balanced'] span:has(> svg[viewBox="0 0 23.16 17.04"]) + span,
+html[data-cp-enabled][data-cp-perf='balanced'] span:has(> svg[viewBox="0 0 23.16 17.04"]) + span + span { animation: cp-brand-glitch 5s steps(1) infinite; color: var(--dsw-alias-brand-primary); }
 html[data-cp-enabled][data-cp-perf='balanced'] div:has(+ .cp-status) > span:not([aria-hidden]) { animation: cp-stats-glitch 8s steps(1) infinite; color: var(--dsw-alias-brand-primary); }
 html[data-cp-enabled][data-cp-perf='balanced'] .cp-status--glitch .cp-status-chip { animation: cp-status-glitch 5s steps(1) infinite; }
 html[data-cp-enabled][data-cp-perf='balanced'] .cp-status-dot { animation: none !important; }
@@ -539,6 +572,8 @@ html[data-cp-enabled][data-cp-perf='eco'] .cp-scanlines,
 html[data-cp-enabled][data-cp-perf='eco'] .cp-vignette { display: none !important; }
 html[data-cp-enabled][data-cp-perf='eco'] svg[viewBox="0 0 182 24"],
 html[data-cp-enabled][data-cp-perf='eco'] svg[viewBox="0 0 23.16 17.04"] { animation: cp-brand-glitch 5s steps(1) infinite; color: var(--dsw-alias-brand-primary); }
+html[data-cp-enabled][data-cp-perf='eco'] span:has(> svg[viewBox="0 0 23.16 17.04"]) + span,
+html[data-cp-enabled][data-cp-perf='eco'] span:has(> svg[viewBox="0 0 23.16 17.04"]) + span + span { animation: cp-brand-glitch 5s steps(1) infinite; color: var(--dsw-alias-brand-primary); }
 html[data-cp-enabled][data-cp-perf='eco'] div:has(+ .cp-status) > span:not([aria-hidden]) { animation: cp-stats-glitch 8s steps(1) infinite; color: var(--dsw-alias-brand-primary) !important; }
 html[data-cp-enabled][data-cp-perf='eco'] .cp-status--glitch .cp-status-chip { animation: cp-status-glitch 5s steps(1) infinite; }
 html[data-cp-enabled][data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
@@ -553,6 +588,8 @@ html[data-cp-enabled][data-cp-perf='eco'] [data-slot="sidebar"] > div > button:h
 @media (prefers-reduced-motion: reduce) {
   html[data-cp-enabled] svg[viewBox="0 0 182 24"],
   html[data-cp-enabled] svg[viewBox="0 0 23.16 17.04"] { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
+  html[data-cp-enabled] span:has(> svg[viewBox="0 0 23.16 17.04"]) + span,
+  html[data-cp-enabled] span:has(> svg[viewBox="0 0 23.16 17.04"]) + span + span { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
   html[data-cp-enabled] div:has(+ .cp-status) > span:not([aria-hidden]) { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
   html[data-cp-enabled] [data-slot="sidebar"] > div > button:has(> svg[viewBox="0 0 16 16"][width="14"]) { transition: none; }
   html[data-cp-enabled] .cp-glitch { animation: none !important; opacity: 0 !important; }
@@ -670,14 +707,14 @@ html[data-cp-enabled][data-cp-perf='eco'] [data-slot="sidebar"] > div > button:h
             onClick: function () { applyAccent(key) },
           }, ACCENTS[key].label)
         })
-        const perfBtns = ['full', 'balanced', 'eco'].map(function (id) {
+        const perfBtns = ['eco', 'balanced', 'full'].map(function (id) {
           const label = id === 'full' ? 'Full' : (id === 'balanced' ? 'Balanced' : 'Eco')
           return React.createElement('button', {
             key: id,
             type: 'button',
             className: 'cp-btn' + (st.perf === id ? ' cp-btn--active' : ''),
             disabled: !st.enabled,
-            onClick: function () { patch({ perf: id }) },
+            onClick: function () { setPerf(id) },
           }, label)
         })
         const schemeBtns = ['dark', 'system', 'light'].map(function (id) {
@@ -718,7 +755,7 @@ html[data-cp-enabled][data-cp-perf='eco'] [data-slot="sidebar"] > div > button:h
           React.createElement('div', { className: optGroupClass },
             React.createElement('div', { className: 'cp-group-label' }, 'Performance'),
             React.createElement('div', { className: 'cp-row' }, perfBtns),
-            React.createElement('p', { className: 'cp-note' }, 'Full: all ambient motion + glitch. Balanced (default): slow stepped edge flow + static atmosphere + glitch flashes, cool. Eco: glitch flashes only, no static atmosphere or filters — coolest.'),
+            React.createElement('p', { className: 'cp-note' }, 'Eco (default): glitch flashes only — coolest. Balanced: slow stepped edge flow + glitch flashes; grid/scanlines opt-in below. Full: all ambient motion + glitch.'),
           ),
           React.createElement('div', { className: optGroupClass },
             React.createElement('label', { className: 'cp-toggle' },

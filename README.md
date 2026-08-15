@@ -135,7 +135,12 @@ pnpm dsh web
 
       // ---------------- shared in-memory store ----------------
       const listeners = new Set()
-      const state = { enabled: true, accent: 'yellow', perf: 'balanced', grid: true, scanlines: true, glitch: true, statusGlitch: true, version: 0 }
+      // Default performance tier is ECO: the coolest static shell with only
+      // the intermittent glitch flashes. Balanced and Full are opt-in.
+      const DEFAULT_PERF = 'eco'
+      // Grid + scanlines stay off until the user opts in (Full enables them
+      // automatically; Balanced defaults them to off when re-entered).
+      const state = { enabled: true, accent: 'yellow', perf: DEFAULT_PERF, grid: false, scanlines: false, glitch: true, statusGlitch: true, version: 0 }
 
       function syncEnabledAttrs() {
         if (state.enabled) {
@@ -184,6 +189,20 @@ pnpm dsh web
         patch({ accent: key })
       }
       function setScheme(id) { theme.setTheme(id) }
+      function setPerf(id) {
+        const p = { perf: id }
+        // Tier defaults: Full turns the ambient grid/scanlines on; Balanced
+        // resets them to off when entered from another tier. Toggles flipped
+        // while staying in Balanced are preserved.
+        if (id === 'full') {
+          p.grid = true
+          p.scanlines = true
+        } else if (id === 'balanced' && state.perf !== 'balanced') {
+          p.grid = false
+          p.scanlines = false
+        }
+        patch(p)
+      }
 
       // ---------------- styles ----------------
       const FONT_CSS = "@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Chakra+Petch:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');"
@@ -334,6 +353,18 @@ html[data-cp-enabled] [data-composer-card]::before {
 /* brand wordmark + whale logo → flowing palette + glitch flicker */
 html[data-cp-enabled] svg[viewBox="0 0 182 24"],
 html[data-cp-enabled] svg[viewBox="0 0 23.16 17.04"] {
+  animation: cp-brand 8s linear infinite, cp-brand-glitch 5s steps(1) infinite;
+}
+/* empty-session hero: headline + Preview badge follow the little whale's
+   flowing color and RGB glitch (they are the fish hitbox span's siblings) */
+html[data-cp-enabled] span:has(> svg[viewBox="0 0 23.16 17.04"]) + span {
+  color: var(--dsw-alias-brand-primary);
+  animation: cp-brand 8s linear infinite, cp-brand-glitch 5s steps(1) infinite;
+}
+html[data-cp-enabled] span:has(> svg[viewBox="0 0 23.16 17.04"]) + span + span {
+  color: var(--dsw-alias-brand-primary);
+  background: color-mix(in srgb, var(--dsw-alias-brand-primary) 14%, transparent);
+  border-color: color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent);
   animation: cp-brand 8s linear infinite, cp-brand-glitch 5s steps(1) infinite;
 }
 @keyframes cp-brand {
@@ -542,6 +573,8 @@ html[data-cp-enabled][data-cp-perf='balanced'] [data-ds-dark-theme] .cp-scanline
 html[data-cp-enabled][data-cp-perf='balanced'] .cp-vignette { background: radial-gradient(ellipse at center, transparent 58%, rgba(4,5,10,0.35) 100%); }
 html[data-cp-enabled][data-cp-perf='balanced'] svg[viewBox="0 0 182 24"],
 html[data-cp-enabled][data-cp-perf='balanced'] svg[viewBox="0 0 23.16 17.04"] { animation: cp-brand-glitch 5s steps(1) infinite; color: var(--dsw-alias-brand-primary); }
+html[data-cp-enabled][data-cp-perf='balanced'] span:has(> svg[viewBox="0 0 23.16 17.04"]) + span,
+html[data-cp-enabled][data-cp-perf='balanced'] span:has(> svg[viewBox="0 0 23.16 17.04"]) + span + span { animation: cp-brand-glitch 5s steps(1) infinite; color: var(--dsw-alias-brand-primary); }
 html[data-cp-enabled][data-cp-perf='balanced'] div:has(+ .cp-status) > span:not([aria-hidden]) { animation: cp-stats-glitch 8s steps(1) infinite; color: var(--dsw-alias-brand-primary); }
 html[data-cp-enabled][data-cp-perf='balanced'] .cp-status--glitch .cp-status-chip { animation: cp-status-glitch 5s steps(1) infinite; }
 html[data-cp-enabled][data-cp-perf='balanced'] .cp-status-dot { animation: none !important; }
@@ -555,6 +588,8 @@ html[data-cp-enabled][data-cp-perf='eco'] .cp-scanlines,
 html[data-cp-enabled][data-cp-perf='eco'] .cp-vignette { display: none !important; }
 html[data-cp-enabled][data-cp-perf='eco'] svg[viewBox="0 0 182 24"],
 html[data-cp-enabled][data-cp-perf='eco'] svg[viewBox="0 0 23.16 17.04"] { animation: cp-brand-glitch 5s steps(1) infinite; color: var(--dsw-alias-brand-primary); }
+html[data-cp-enabled][data-cp-perf='eco'] span:has(> svg[viewBox="0 0 23.16 17.04"]) + span,
+html[data-cp-enabled][data-cp-perf='eco'] span:has(> svg[viewBox="0 0 23.16 17.04"]) + span + span { animation: cp-brand-glitch 5s steps(1) infinite; color: var(--dsw-alias-brand-primary); }
 html[data-cp-enabled][data-cp-perf='eco'] div:has(+ .cp-status) > span:not([aria-hidden]) { animation: cp-stats-glitch 8s steps(1) infinite; color: var(--dsw-alias-brand-primary) !important; }
 html[data-cp-enabled][data-cp-perf='eco'] .cp-status--glitch .cp-status-chip { animation: cp-status-glitch 5s steps(1) infinite; }
 html[data-cp-enabled][data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
@@ -569,6 +604,8 @@ html[data-cp-enabled][data-cp-perf='eco'] [data-slot="sidebar"] > div > button:h
 @media (prefers-reduced-motion: reduce) {
   html[data-cp-enabled] svg[viewBox="0 0 182 24"],
   html[data-cp-enabled] svg[viewBox="0 0 23.16 17.04"] { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
+  html[data-cp-enabled] span:has(> svg[viewBox="0 0 23.16 17.04"]) + span,
+  html[data-cp-enabled] span:has(> svg[viewBox="0 0 23.16 17.04"]) + span + span { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
   html[data-cp-enabled] div:has(+ .cp-status) > span:not([aria-hidden]) { animation: none !important; color: var(--dsw-alias-brand-primary) !important; }
   html[data-cp-enabled] [data-slot="sidebar"] > div > button:has(> svg[viewBox="0 0 16 16"][width="14"]) { transition: none; }
   html[data-cp-enabled] .cp-glitch { animation: none !important; opacity: 0 !important; }
@@ -686,14 +723,14 @@ html[data-cp-enabled][data-cp-perf='eco'] [data-slot="sidebar"] > div > button:h
             onClick: function () { applyAccent(key) },
           }, ACCENTS[key].label)
         })
-        const perfBtns = ['full', 'balanced', 'eco'].map(function (id) {
+        const perfBtns = ['eco', 'balanced', 'full'].map(function (id) {
           const label = id === 'full' ? 'Full' : (id === 'balanced' ? 'Balanced' : 'Eco')
           return React.createElement('button', {
             key: id,
             type: 'button',
             className: 'cp-btn' + (st.perf === id ? ' cp-btn--active' : ''),
             disabled: !st.enabled,
-            onClick: function () { patch({ perf: id }) },
+            onClick: function () { setPerf(id) },
           }, label)
         })
         const schemeBtns = ['dark', 'system', 'light'].map(function (id) {
@@ -734,7 +771,7 @@ html[data-cp-enabled][data-cp-perf='eco'] [data-slot="sidebar"] > div > button:h
           React.createElement('div', { className: optGroupClass },
             React.createElement('div', { className: 'cp-group-label' }, 'Performance'),
             React.createElement('div', { className: 'cp-row' }, perfBtns),
-            React.createElement('p', { className: 'cp-note' }, 'Full: all ambient motion + glitch. Balanced (default): slow stepped edge flow + static atmosphere + glitch flashes, cool. Eco: glitch flashes only, no static atmosphere or filters — coolest.'),
+            React.createElement('p', { className: 'cp-note' }, 'Eco (default): glitch flashes only — coolest. Balanced: slow stepped edge flow + glitch flashes; grid/scanlines opt-in below. Full: all ambient motion + glitch.'),
           ),
           React.createElement('div', { className: optGroupClass },
             React.createElement('label', { className: 'cp-toggle' },
@@ -885,10 +922,11 @@ html[data-cp-enabled][data-cp-perf='eco'] [data-slot="sidebar"] > div > button:h
 - **暗角（Vignette）**——四周柔和压暗。
 - **流动边框彩带**——黄 → 青 → 品红 → 紫的四色霓虹彩带沿整个应用边框流动。
 - **屏幕故障闪烁**——偶发全屏故障爆闪。
-- 按性能档位挂载：Full 挂载全部；Balanced 挂载网格/扫描线/暗角三个静态层 + **变换动画版流光边框**；Eco 只挂载**故障闪烁层**。故障闪烁层全程仅做 `opacity/transform` 合成器动画，每 6 秒做 4 组双闪，平均开销很小，所以三个档位都有。
+- 按性能档位挂载：Full 挂载全部；Balanced 只挂载暗角 + **变换动画版流光边框**，网格/扫描线可在设置中按需开启；Eco（默认）只挂载**故障闪烁层**。故障闪烁层全程仅做 `opacity/transform` 合成器动画，每 6 秒做 4 组双闪，平均开销很小，所以三个档位都有。
 
 ### ✨ 品牌
 - 左上角 **DeepSeek Harness 商标 + 鲸鱼 Logo** 在 Full 档下于四色间流动（8 秒循环）；三档都保留周期性的 RGB 分离故障闪烁，Balanced/Eco 档底色保持静态强调色。
+- 新会话空白页的 **探索未至之境 / 预览版** 标题与徽章跟随小鲸鱼品牌色同步，并一起做 RGB 故障闪烁。
 
 ### 📊 输入框读数区
 - **LLM 统计行**——内置统计行变成一排紧凑单行切角芯片；Full 档颜色**与品牌实时同步**（同一套关键帧），三档都保留周期性芯片故障闪烁；缓存命中率从整数改写为 **2 位小数**（如 `Cache hit 99.13%`）。
@@ -903,7 +941,7 @@ html[data-cp-enabled][data-cp-perf='eco'] [data-slot="sidebar"] > div > button:h
 - **主题总开关（Enable Cyberpunk theme）**——一键停用整套主题：token 覆盖、氛围层、状态条和全部 CSS 效果都卸载，界面恢复 DSH 原生外观；设置页本身保留，随时可以一键重新开启。关闭时其余选项会禁用置灰。
 - 配色方案：**夜之城（暗色）** / 跟随系统 / 亮色。
 - 强调色：4 套预设，通过 `theme.overrideTokens` 实时切换。
-- **性能档位：Full / Balanced（默认）/ Eco**——流光边框不是用整屏渐变 + `background-position` 动画实现的（那会让浏览器每帧重新光栅化整个视口），而是拆成**四条 2px 细边**，每条边内部只对一个小图层做 `transform` 位移（纯合成器动画，不走主线程重绘）。因此 **Balanced 可以保留缓慢流动的霓虹边框**，关掉的只是品牌/统计行的**连续色彩流动**和装饰性滤镜，品牌/统计/状态条的间歇故障闪烁三档都保留；**Eco** 不挂载网格/扫描线/暗角/边框，只保留屏幕故障与品牌/统计/状态条故障；**Full** 启用全部动态效果。
+- **性能档位：Full / Balanced / Eco（默认）**——默认使用最省电的 Eco：不挂载网格/扫描线/暗角/边框，只保留屏幕故障与品牌/统计/状态条故障。流光边框不是用整屏渐变 + `background-position` 动画实现的（那会让浏览器每帧重新光栅化整个视口），而是拆成**四条 2px 细边**，每条边内部只对一个小图层做 `transform` 位移（纯合成器动画，不走主线程重绘）。**Balanced** 开启缓慢流动的霓虹边框 + 暗角，网格/扫描线按需开启，关掉品牌/统计行的连续色彩流动和装饰性滤镜，三档都保留品牌/统计/状态条的间歇故障闪烁；**Full** 启用全部动态效果并自动打开网格/扫描线。
 - 特效开关：**网格** / **扫描线** / **屏幕故障** / **状态条故障**。
 - 全部尊重 `prefers-reduced-motion`（系统"减弱动态效果"时自动关闭动画）。
 

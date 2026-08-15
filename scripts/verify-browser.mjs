@@ -40,6 +40,40 @@ for (let i = 0; i < 30; i++) {
   active = await page.evaluate(() => Boolean(document.querySelector('.cp-overlay')))
   if (active) break
 }
+const initialPerf = await page.evaluate(() => document.documentElement.getAttribute('data-cp-perf'))
+
+// Empty-session hero: headline + preview badge must follow the whale logo
+// color and carry cp-brand-glitch in the default (eco) tier.
+let heroProbe = null
+if (active) {
+  await page.evaluate(() => {
+    const btn = [...document.querySelectorAll('button')].find(
+      (b) => b.getAttribute('aria-label') === 'New session' && !(b.className || '').toString().includes('brand'),
+    )
+    if (btn) btn.click()
+  })
+  for (let i = 0; i < 20 && heroProbe === null; i++) {
+    await page.waitForTimeout(200)
+    heroProbe = await page.evaluate(() => {
+      const fish = document.querySelector('svg[viewBox="0 0 23.16 17.04"]')
+      const hitbox = fish?.parentElement
+      const headline = hitbox?.parentElement
+      const text = headline?.children?.[1]
+      const badge = headline?.children?.[2]
+      if (!fish || !text || !badge) return null
+      return {
+        text: text.textContent.trim(),
+        badge: badge.textContent.trim(),
+        textAnimation: getComputedStyle(text).animationName,
+        badgeAnimation: getComputedStyle(badge).animationName,
+        fishAnimation: getComputedStyle(fish).animationName,
+        textColor: getComputedStyle(text).color,
+        badgeColor: getComputedStyle(badge).color,
+        fishColor: getComputedStyle(fish).color,
+      }
+    })
+  }
+}
 
 // The status strip is session-scoped (conversation.composer.dock): try each
 // sidebar row until one opens a session and the dock renders.
@@ -133,7 +167,7 @@ if (settingsSection) {
   for (let i = 0; i < 20; i++) {
     await page.waitForTimeout(200)
     fullProbe = await probe()
-    if (fullProbe.ribbon && fullProbe.glitch) break
+    if (fullProbe.ribbon && fullProbe.glitch && fullProbe.grid && fullProbe.scanlines) break
   }
 
   await clickPerf('Eco')
@@ -150,7 +184,7 @@ if (settingsSection) {
     await page.waitForTimeout(200)
     balancedProbe = await probe()
     if (balancedProbe.perf === 'balanced' && balancedProbe.overlay
-      && balancedProbe.ribbon && balancedProbe.glitch && balancedProbe.grid) break
+      && balancedProbe.ribbon && balancedProbe.glitch && !balancedProbe.grid && !balancedProbe.scanlines) break
   }
 
   perfProbe = { full: fullProbe, balanced: balancedProbe, eco: ecoProbe }
@@ -230,6 +264,8 @@ result.master = master
 result.masterOff = masterOff
 result.masterOn = masterOn
 result.perfProbe = perfProbe
+result.heroProbe = heroProbe
+result.initialPerf = initialPerf
 console.log(JSON.stringify(result, null, 2))
 console.log('console errors:', consoleErrors.length ? consoleErrors.slice(0, 8) : 'none')
 const interesting = consoleAll.filter((l) => /cyberpunk|theme|font|google|error|warn/i.test(l))
@@ -247,6 +283,12 @@ const balancedAnims = result.perfProbe?.balanced?.cpAnimations ?? []
 const ecoAnims = result.perfProbe?.eco?.cpAnimations ?? []
 const cacheOk = (text) => !text || /^(Cache hit|缓存命中) \d+\.\d{2}%$/.test(text)
 const ok = active
+  && result.initialPerf === 'eco'
+  && result.heroProbe?.textAnimation === 'cp-brand-glitch'
+  && result.heroProbe?.badgeAnimation === 'cp-brand-glitch'
+  && result.heroProbe?.fishAnimation === 'cp-brand-glitch'
+  && result.heroProbe?.textColor === result.heroProbe?.fishColor
+  && result.heroProbe?.badgeColor === result.heroProbe?.fishColor
   && result.overlay
   && result.statusStrip
   && result.settingsSection
@@ -259,12 +301,15 @@ const ok = active
   && result.masterOn
   && result.perfProbe?.full?.ribbon
   && result.perfProbe?.full?.glitch
+  && result.perfProbe?.full?.grid
+  && result.perfProbe?.full?.scanlines
   && result.perfProbe?.full?.glitchDuration === '6s'
   && result.perfProbe?.balanced?.overlay
   && result.perfProbe?.balanced?.ribbon
   && result.perfProbe?.balanced?.glitch
   && result.perfProbe?.balanced?.glitchDuration === '6s'
-  && result.perfProbe?.balanced?.grid
+  && !result.perfProbe?.balanced?.grid
+  && !result.perfProbe?.balanced?.scanlines
   && result.perfProbe?.balanced?.statusGlitch
   && result.perfProbe?.balanced?.brandAnimation === 'cp-brand-glitch'
   && result.perfProbe?.balanced?.statsAnimation === 'cp-stats-glitch'
