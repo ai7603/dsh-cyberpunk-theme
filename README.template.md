@@ -101,13 +101,14 @@ pnpm dsh web
 - **暗角（Vignette）**——四周柔和压暗。
 - **流动边框彩带**——黄 → 青 → 品红 → 紫的四色霓虹彩带沿整个应用边框流动。
 - **屏幕故障闪烁**——偶发全屏故障爆闪。
+- 按性能档位挂载：Full 挂载全部；Balanced 挂载网格/扫描线/暗角三个静态层 + **变换动画版流光边框**；Eco 只挂载**故障闪烁层**。故障闪烁层全程仅做 `opacity/transform` 合成器动画，每 6 秒做 4 组双闪，平均开销很小，所以三个档位都有。
 
 ### ✨ 品牌
-- 左上角 **DeepSeek Harness 商标 + 鲸鱼 Logo** 在四色间流动（8 秒循环），伴随周期性的 RGB 分离故障闪烁。
+- 左上角 **DeepSeek Harness 商标 + 鲸鱼 Logo** 在 Full 档下于四色间流动（8 秒循环）；三档都保留周期性的 RGB 分离故障闪烁，Balanced/Eco 档底色保持静态强调色。
 
 ### 📊 输入框读数区
-- **LLM 统计行**——内置统计行变成一排紧凑单行切角芯片，颜色**与品牌实时同步**（同一套关键帧），带柔光与轻微故障。
-- **状态条**——`LOCAL HH:MM:SS` · 日期 · `UPLINK ● ONLINE` 心跳（动态安装：真实 Client→Host ping；永久安装：浏览器连通性 bridge）· 当前强调色；可开启故障闪烁。
+- **LLM 统计行**——内置统计行变成一排紧凑单行切角芯片；Full 档颜色**与品牌实时同步**（同一套关键帧），三档都保留周期性芯片故障闪烁；缓存命中率从整数改写为 **2 位小数**（如 `Cache hit 99.13%`）。
+- **状态条**——`LOCAL HH:MM:SS` · 日期 · `UPLINK ● ONLINE` 心跳（动态安装：真实 Client→Host ping；永久安装：浏览器连通性 bridge）· 当前强调色；三档都可开启状态条故障闪烁。
 
 ### 🧩 细节打磨
 - **赛博朋克对角双切角**（左上 + 右下，CP2077 标志性造型）：用户气泡 16px、工具调用组卡片 14px、composer 输入卡片 12px、新会话按钮 10px、代码块 10px——每条切边都带霓虹亮线（1px 描边沿对角线被裁切，切出的斜线自带发光）。
@@ -118,7 +119,7 @@ pnpm dsh web
 - **主题总开关（Enable Cyberpunk theme）**——一键停用整套主题：token 覆盖、氛围层、状态条和全部 CSS 效果都卸载，界面恢复 DSH 原生外观；设置页本身保留，随时可以一键重新开启。关闭时其余选项会禁用置灰。
 - 配色方案：**夜之城（暗色）** / 跟随系统 / 亮色。
 - 强调色：4 套预设，通过 `theme.overrideTokens` 实时切换。
-- **性能档位：Full / Balanced（默认）/ Eco**——Balanced 关闭全屏故障层、加粗扫描线间距、放缓彩带与品牌动画；Eco 全部动画静止（最省电，Mac 不发烫）。发热大户就是全屏流动彩带与故障层的逐帧重绘，两档省电模式直接去掉它们。
+- **性能档位：Full / Balanced（默认）/ Eco**——流光边框不是用整屏渐变 + `background-position` 动画实现的（那会让浏览器每帧重新光栅化整个视口），而是拆成**四条 2px 细边**，每条边内部只对一个小图层做 `transform` 位移（纯合成器动画，不走主线程重绘）。因此 **Balanced 可以保留缓慢流动的霓虹边框**，关掉的只是品牌/统计行的**连续色彩流动**和装饰性滤镜，品牌/统计/状态条的间歇故障闪烁三档都保留；**Eco** 不挂载网格/扫描线/暗角/边框，只保留屏幕故障与品牌/统计/状态条故障；**Full** 启用全部动态效果。
 - 特效开关：**网格** / **扫描线** / **屏幕故障** / **状态条故障**。
 - 全部尊重 `prefers-reduced-motion`（系统"减弱动态效果"时自动关闭动画）。
 
@@ -128,6 +129,8 @@ pnpm dsh web
 
 - **Token 层**：`theme.overrideTokens(source, tokens)` 在活动主题之上叠加一层，presenter 把它投影到 `body` 的 CSS 变量上——因此亮/暗两套配色都能被完整覆盖。
 - **主题总开关**：`<html data-cp-enabled>` 是全部主题 CSS 的前置条件；关闭开关会移除该属性、dispose token 覆盖，并让氛围层/状态条组件返回 `null`。设置页样式刻意不加这个前缀，所以关掉主题后仍能打开设置页重新开启。
+- **流光边框性能**：四边细条方案把每帧需要重绘的像素量从 `宽 × 高` 降到 `2 × (宽 + 高) × 2px`（约两个数量级），并且动画只改 `transform`，交给合成器在 GPU 上处理，主线程不会每帧重新光栅化。
+- **故障闪烁性能**：故障层平时 `opacity: 0`，只在 6 秒周期内的 4 组短瞬间做 `opacity/transform` 变化——这是浏览器最便宜的合成器属性，而且绝大部分时间完全不做功，所以放在 Balanced/Eco 里仍几乎不增加功耗。
 - **Slot 注册**：氛围层注册在 `shell.overlay`（list、可叠加），状态条在 `conversation.composer.dock`，设置页在 `settings.section`。
 - **产品 DOM 定位**：内置 UI 全部通过**稳定属性**（而非哈希类名）来定向：
   - 用户气泡：`data-chat-flow-kind="user"` + `data-time-hover-root`（行内栈的最后一个 `div` 就是气泡本体）
@@ -138,6 +141,7 @@ pnpm dsh web
   - 代码块：`[data-chat-flow-kind] pre`
   - 品牌：`svg[viewBox="0 0 182 24"]` / `svg[viewBox="0 0 23.16 17.04"]`
   - LLM 统计行：状态条的兄弟元素，用 `:has(+ .cp-status)` 定位
+  - 缓存命中精度：DSH 渲染前把命中率四舍五入成整数；主题从该组件的 React fiber hook 状态里读取原始 `cacheReadTokens` / `uncachedInputTokens` / `cacheWriteTokens` 三个桶重新计算两位小数。读不到时保留 DSH 原生整数文案。
 
   这些属性不属于 DSH 公开 API——如果 DSH 改了 DOM 结构，主题会**优雅降级**（不报错，只是局部不生效）。
 
@@ -169,7 +173,7 @@ pnpm dsh web
 - **`ACCENTS`** —— 强调色预设。新增一套：给它 `label` + `brand` / `success` / `error` / `warn` 各一组 `{ light, dark }`。
 - **`baseTokens`** —— 与强调色无关的背景/文字/边框 token，每个都是 `{ light, dark }` 一对（DSH 的 13 个 alias token）。
 - **`state` / `patch`** —— 内存设置 store：总开关 `enabled`、强调色、性能档位与各特效开关。`patch()` 负责同步 `data-cp-enabled` / `data-cp-perf` 属性与 token 覆盖层。
-- **`MAIN_CSS`** —— 所有特效，主题选择器都带 `html[data-cp-enabled]` 前缀（总开关），设置页样式例外。动画时长是 `@keyframes` 里的 `…s infinite` 值（`cp-ribbon`、`cp-brand`、`cp-glitch`、`cp-stats-glitch`、`cp-status-glitch`、`cp-dot`）；浓度是各处的 alpha / `color-mix` 百分比。
+- **`MAIN_CSS`** —— 所有特效，主题选择器都带 `html[data-cp-enabled]` 前缀（总开关），设置页样式例外。动画时长是 `@keyframes` 里的 `…s infinite` 值（`cp-ribbon-flow-x/y`、`cp-brand`、`cp-glitch`、`cp-stats-glitch`、`cp-status-glitch`、`cp-dot`）；浓度是各处的 alpha / `color-mix` 百分比。
 
 改完代码后，`pnpm build` 重建永久安装产物（`lib/`），`node scripts/build-readme.cjs` 同步 README 里的动态安装代码块。
 
