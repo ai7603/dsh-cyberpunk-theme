@@ -3,35 +3,68 @@
   "version": "1.0.0",
   "description": "Cyberpunk 2077 (Night City) theme for DeepSeek Harness — installable as a permanent composition plugin or a dynamic Cordis plugin.",
   "type": "module",
-  "main": "index.js",
+  "main": "lib/index.js",
   "exports": {
-    ".": "./index.js",
+    ".": {
+      "types": "./src/types.d.ts",
+      "default": "./lib/index.js"
+    },
     "./host": {
       "types": "./src/types.d.ts",
-      "default": "./src/host-plugin.mjs"
+      "default": "./lib/index.js"
     },
     "./client": {
-      "types": "./src/types.d.ts",
-      "default": "./src/client-plugin.mjs"
-    }
-  },
-  "dsh": {
-    "client": {
-      "inject": [],
-      "platform": "web"
-    }
+      "types": "./src/types.client.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
   },
   "files": [
+    "lib",
+    "cordis.patch.yml",
     "index.js",
-    "src"
+    "src",
+    "scripts"
   ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-cordis-client-runner",
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-theme",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ],
+      "platform": "web",
+      "immediately": true
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "watch": "tsdown --watch",
+    "extract": "node scripts/extract-body.cjs",
+    "readme": "node scripts/build-readme.cjs",
+    "check": "node scripts/extract-body.cjs && node scripts/check-body.cjs && node scripts/build-readme.cjs",
+    "prepack": "npm run build"
+  },
+  "devDependencies": {
+    "react": "^18.3.1",
+    "tsdown": "^0.22.2"
+  },
   "keywords": [
     "deepseek-harness",
     "dsh",
     "cyberpunk",
     "theme",
     "cordis",
-    "plugin"
+    "plugin",
+    "bundle",
+    "web"
   ],
   "license": "MIT"
 }

@@ -1,8 +1,9 @@
 /**
- * Permanent-plugin entry (host half) — the standard Cordis default export the
- * Loader expects from a `cordis.yml` row (`name: dsh-cyberpunk-theme`).
- * The dynamic-plugin flow pastes the `return { … }` block from `src/host.js`
- * instead; this file only exists for permanent installs.
+ * Historical convenience entry: exports the dynamic host half (the ping RPC)
+ * as a default Cordis plugin object. The real permanent host entry is
+ * `lib/index.js` (no-op loader entry built from `src/host-index.js`); the
+ * dynamic-plugin flow pastes the `return { … }` block from `src/host.js`
+ * instead. Kept for programmatic importers.
  */
 import { cyberpunkHostPlugin } from './host.js'
 

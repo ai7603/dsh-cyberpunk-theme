@@ -1,0 +1,7 @@
+# Smoke-test overlay: run the web profile on a scratch port so the running
+# GUI on 3080 is untouched. The cyberpunk-theme bundle layer is already in
+# dsh.profile.bundles; this patch only moves the webserver.
+- id: webserver
+  config:
+    host: 127.0.0.1
+    port: 3092

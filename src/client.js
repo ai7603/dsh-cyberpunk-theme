@@ -21,7 +21,39 @@
  * This is the plain "function body" form accepted by the DSH dynamic-plugin
  * feature as `code.client`. In the web GUI, paste the `return { … }` block
  * below as the client code; the file also works as a plain ES module.
+ *
+ * Permanent (bundled) install support: dynamic packages receive `React`,
+ * `styles` and `host` as closure parameters from the evaluator. A bundled
+ * client has no evaluator, so the permanent entry (`src/client/index.js`)
+ * installs shims on `globalThis.__DSH_CYBERPUNK_*` before calling `apply()`.
+ * The wrappers below resolve those shims lazily, while the dynamic-plugin
+ * extraction scripts cut this file at the `return {` marker and therefore
+ * keep using the evaluator parameters unchanged.
  */
+import * as React from 'react'
+
+const permanentScope = typeof globalThis === 'undefined' ? {} : globalThis
+
+const styles = {
+  insert(css) {
+    const sink = permanentScope.__DSH_CYBERPUNK_STYLES__
+    if (sink === undefined) {
+      throw new Error('dsh-cyberpunk-theme: permanent style bridge is not installed (src/client/index.js must run first)')
+    }
+    return sink.insert(css)
+  },
+}
+
+const host = {
+  call(method, args) {
+    const bridge = permanentScope.__DSH_CYBERPUNK_HOST__
+    if (bridge === undefined) {
+      return Promise.reject(new Error('dsh-cyberpunk-theme: permanent host bridge is not installed (src/client/index.js must run first)'))
+    }
+    return bridge.call(method, args)
+  },
+}
+
 export function cyberpunkClientPlugin() {
   return {
     apply(ctx) {

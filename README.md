@@ -1,7 +1,7 @@
 # dsh-cyberpunk-theme · DSH 赛博朋克 2077 主题
 
 > 把 [DeepSeek Harness](https://github.com/deepseek-ai)（DSH）整个界面换成《赛博朋克 2077》夜之城风格的**深度定制主题**——霓虹配色、CRT 氛围、流动彩带、故障闪烁、全局切角 UI、输入框下方的实时状态条，还带一个独立的设置页。
-> 以 **动态 Cordis 插件** 形式分发（30 秒快速体验，零配置），也支持 **clone 仓库一行配置永久安装**（刷新/重启都不丢）。
+> 以 **标准 DSH bundle 插件** 分发（`dsh plugin add` 一行安装，刷新/重启都不丢），同时保留 **动态 Cordis 插件** 形式（30 秒快速体验，零配置）。
 
 ---
 
@@ -25,22 +25,27 @@
 
 Agent 会读取仓库代码、自动完成 `cordis_define` + `cordis_run`。之后**刷新页面主题消失**时，同样一句话让 Agent 重新运行即可恢复。
 
-### 方式二：clone / 下载仓库，永久安装（推荐正式使用）
+### 方式二：`dsh plugin add` 安装，永久生效（推荐正式使用）
 
-把主题装成 DSH 的**正式组合插件**：浏览器端随 DSH 前端一起构建，**刷新不丢、重启不丢**。
+把主题装成 DSH 的**正式组合插件（bundle）**：浏览器端由 client module system 以 `/plugins/dsh-cyberpunk-theme/client.js` 服务，**刷新不丢、重启不丢**。
 
-1. `git clone https://github.com/ai7603/dsh-cyberpunk-theme`（或直接下载 zip 解压）；
-2. 把仓库放进你的 DSH 包的 workspace（在 `pnpm-workspace.yaml` / `package.json` 的 dependencies 里加上这个本地包）；
-3. 在 DSH 的 `cordis.yml` 末尾追加一行：
+1. `git clone https://github.com/ai7603/dsh-cyberpunk-theme`（或直接下载 zip 解压）。仓库已包含构建好的 `lib/index.js` + `lib/client.js`，直接安装即可；只有改过源码才需要 `pnpm install && pnpm build` 重建；
+2. 在你的 DSH checkout 里执行：
 
-```yaml
-- id: cyberpunk-2077
-  name: dsh-cyberpunk-theme
+```sh
+pnpm dsh plugin --profile web add /path/to/dsh-cyberpunk-theme
+# 或: pnpm dsh plugin --profile <你的 profile> add <本地路径>
 ```
 
-4. 重启 DSH（会重建 web bundle，把浏览器端插件一并打进去）。
+3. 重启该 web profile（plugin-set 变更按设计需要重启）：
 
-浏览器端走 DSH 标准声明机制（package.json 的 `exports["./client"]` + `dsh.client.platform: "web"`），host 端（ping 心跳）随组合加载——与 DSH 内置插件完全同构，见下方「🔩 怎么做到的」。
+```sh
+pnpm dsh web
+```
+
+安装命令会识别 package.json 的 `dsh.bundle.patch`，把本包追加到 `dsh.profile.bundles`；其 `cordis.patch.yml` 自动向组合树插入 `id: cyberpunk-2077` / `name: dsh-cyberpunk-theme` 行。验证可用 `pnpm dsh web --dump-config` 看到该行，页面打开后设置里应出现 **Cyberpunk 2077** 分区。
+
+> 💡 **不需要改动 DSH 源码/workspace**：`lib/` 是本包的产物目录，host 端是合法的 no-op loader entry，浏览器端是标准 `dsh.client` bundle。详见「🔩 怎么做到的」。
 
 ### 方式三：30 秒快速体验（动态插件，刷新会消失）
 
@@ -663,7 +668,7 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
 
 | | 方式一 / 方式三（动态插件） | 方式二（永久安装） |
 | --- | --- | --- |
-| 安装成本 | 一句话 / 复制粘贴一次 | clone + cordis.yml 一行 + 重启 |
+| 安装成本 | 一句话 / 复制粘贴一次 | clone + `dsh plugin add` + 重启 |
 | 刷新页面 | **主题消失**，需要重新运行 | 一直生效 |
 | DSH 重启 | 插件丢失 | 一直生效 |
 | 适用 | 快速体验、临时试用 | 正式长期使用 |
@@ -689,7 +694,7 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
 
 ### 📊 输入框读数区
 - **LLM 统计行**——内置统计行变成一排紧凑单行切角芯片，颜色**与品牌实时同步**（同一套关键帧），带柔光与轻微故障。
-- **状态条**——`LOCAL HH:MM:SS` · 日期 · `UPLINK ● ONLINE` 心跳（真实 Client→Host ping，圆点脉冲）· 当前强调色；可开启故障闪烁。
+- **状态条**——`LOCAL HH:MM:SS` · 日期 · `UPLINK ● ONLINE` 心跳（动态安装：真实 Client→Host ping；永久安装：浏览器连通性 bridge）· 当前强调色；可开启故障闪烁。
 
 ### 🧩 细节打磨
 - **赛博朋克对角双切角**（左上 + 右下，CP2077 标志性造型）：用户气泡 16px、工具调用组卡片 14px、composer 输入卡片 12px、新会话按钮 10px、代码块 10px——每条切边都带霓虹亮线（1px 描边沿对角线被裁切，切出的斜线自带发光）。
@@ -721,21 +726,22 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
 
   这些属性不属于 DSH 公开 API——如果 DSH 改了 DOM 结构，主题会**优雅降级**（不报错，只是局部不生效）。
 
-### 🔩 为什么"clone 即装"能成立（方式二原理）
+### 🔩 为什么 `dsh plugin add` 一行即装（方式二原理）
 
-永久安装不是魔法，而是 DSH 的**标准组合插件协议**：
+永久安装走 DSH 的**标准 bundle 插件协议**，与内置 web 插件完全同构：
 
-- `cordis.yml` 里的一行 `- id: cyberpunk-2077` + `name: dsh-cyberpunk-theme` 让 Loader 加载本包的 host 端（`src/host-plugin.mjs` → ping 心跳服务）；
-- 浏览器端由 `package.json` 的 `exports["./client"]` + `dsh.client.platform: "web"` 声明被发现，随 DSH 的 web 前端一起构建打包——与 DSH 内置的浏览器插件（如 `cordis-client-runner`）完全同构；
-- 所以它**刷新不丢、重启不丢**。
+- `dsh.bundle.patch` 声明本包是 bundle；`cordis.patch.yml` 向组合树插入 `id: cyberpunk-2077` / `name: dsh-cyberpunk-theme` 行，`dsh plugin add` 的 reconcile 会把它追加进 profile 的 `dsh.profile.bundles`；
+- package 主入口 `lib/index.js` 是合法 host loader entry（`name` + `apply`，纯浏览器主题所以 host 面为 no-op）；
+- `dsh.client` + `exports["./client"]` 让 client module system 把 `lib/client.js` 编进启动图，经 `/plugins/dsh-cyberpunk-theme/client.js` 下发。`lib/client.js` 是 tsdown 生成的 closure-factory bundle：`window.__ModuleLoader__.load({ id, factory })`，React 从 loader 平台模块表解析、不重复打包；
+- 所以它**刷新不丢、重启不丢**，bundle 内容更新还能走 host 的 HMR 轮询。
 
-如果你从动态插件（方式一/三）迁移到永久插件（方式二），只需把三处"动态便利"换成常规写法，其余全部原样保留：
+动态插件（方式一/三）与永久插件共用同一个 `cyberpunkClientPlugin()` 主题核心，只把三处"动态便利"桥接成 bundle 等价物，配色、CSS、Slot 注册一行不变：
 
 | 动态插件写法 | 永久插件等价写法 |
 | --- | --- |
-| `styles.insert(css)` | 打包器 CSS（CSS Modules / 样式表导入） |
-| `React.createElement(...)` | JSX |
-| `harness.handle` / `host.call` 的 ping | 常规的 client ↔ host 桥接 |
+| evaluator 闭包参数 `styles.insert(css)` | `src/client/runtime.js` 的 plugin-owned `<style data-plugin>` sink，经 `globalThis.__DSH_CYBERPUNK_STYLES__` 注入 |
+| evaluator 闭包参数 `React` | `src/client.js` 顶部的 `import * as React from 'react'`（打包时 external 到平台模块表） |
+| evaluator 闭包参数 `host.call('ping')` / host 面 `harness.handle` | `src/client/runtime.js` 的浏览器连通性 bridge；host 面改为 no-op |
 
 `theme.overrideTokens`、三个 Slot 注册（`shell.overlay`、`conversation.composer.dock`、`settings.section`）、token 名、配色值——**一行都不用改**。
 
@@ -749,7 +755,7 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
 - **`baseTokens`** —— 与强调色无关的背景/文字/边框 token，每个都是 `{ light, dark }` 一对（DSH 的 13 个 alias token）。
 - **`MAIN_CSS`** —— 所有特效。动画时长是 `@keyframes` 里的 `…s infinite` 值（`cp-ribbon`、`cp-brand`、`cp-glitch`、`cp-stats-glitch`、`cp-status-glitch`、`cp-dot`）；浓度是各处的 alpha / `color-mix` 百分比。
 
-改完代码后，README 里的安装代码块可以一键同步：`node scripts/build-readme.cjs`。
+改完代码后，`pnpm build` 重建永久安装产物（`lib/`），`node scripts/build-readme.cjs` 同步 README 里的动态安装代码块。
 
 ---
 
@@ -757,19 +763,32 @@ html[data-cp-perf='eco'] .cp-status-dot { animation: none !important; }
 
 ```
 dsh-cyberpunk-theme/
+├── lib/
+│   ├── index.js            # 构建产物：永久安装的 host entry（no-op loader 插件）
+│   ├── client.js           # 构建产物：永久安装的浏览器 bundle（__ModuleLoader__ closure factory）
+│   └── client.js.map
 ├── src/
-│   ├── client.js          # 客户端一半：token、CSS、氛围层、状态条、设置页
-│   ├── host.js            # 主机一半：私有 ping RPC（心跳）
-│   ├── client-plugin.mjs  # 永久安装的浏览器端入口（exports["./client"] 默认导出）
-│   └── host-plugin.mjs    # 永久安装的主机端入口（cordis.yml 行加载）
-├── index.js               # 重新导出两个插件工厂
+│   ├── client.js           # 主题核心：token、CSS、氛围层、状态条、设置页（动态/永久共用）
+│   ├── host.js             # 动态插件 host 一半：私有 ping RPC（心跳）
+│   ├── client/index.js     # 永久安装浏览器端 entry（name/inject/apply）
+│   ├── client/runtime.js   # 永久安装桥接：styles.insert + host.call 的 bundle 等价物
+│   ├── host-index.js       # 永久安装 host entry（no-op，构建为 lib/index.js）
+│   ├── client-plugin.mjs   # 历史兼容入口（动态插件对象形式）
+│   ├── host-plugin.mjs     # 历史兼容入口（动态插件对象形式）
+│   ├── types.d.ts          # lib/index.js 的类型面
+│   └── types.client.d.ts   # lib/client.js 的类型面
+├── cordis.patch.yml        # bundle patch：向组合树插入 cyberpunk-2077 行
+├── tsdown.config.mjs       # 构建 lib/（host ESM + client CJS closure factory）
+├── index.js                # 重新导出两个动态插件工厂
 ├── scripts/
 │   ├── extract-body.cjs    # 从 src/ 提取可直接粘贴的动态插件代码块
 │   ├── build-readme.cjs    # 用提取结果生成 README.md（安装代码不漂移）
+│   ├── verify-browser.mjs  # 永久安装浏览器冒烟测试
+│   ├── smoke-port.patch.yml # 冒烟测试用 scratch 端口 overlay（3092）
 │   └── inspect-dom.cjs     # 真实页面 DOM 体检（调试产品锚点用）
 ├── docs/
 │   └── screenshots/  # 暗色/亮色实拍截图
-├── package.json        # 含 exports["./client"] + dsh.client 声明（永久安装协议）
+├── package.json        # 含 dsh.bundle + exports["./client"] + dsh.client 声明（标准 bundle 协议）
 ├── LICENSE           # MIT
 └── README.md
 ```

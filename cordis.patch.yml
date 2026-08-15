@@ -1,0 +1,9 @@
+# dsh-cyberpunk-theme bundle patch: inserts the plugin row into the web
+# profile composition. Applied automatically when the package is installed
+# into a profile via `dsh plugin --profile <profile> add <path>` (the bundle
+# layer reconciliation appends this package to dsh.profile.bundles). The
+# entry `name` must equal the package name — the client module system keys
+# the boot graph and the `/plugins/<id>/client.js` route by the package name.
+- insert:
+    - id: cyberpunk-2077
+      name: dsh-cyberpunk-theme
