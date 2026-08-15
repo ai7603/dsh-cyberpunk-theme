@@ -130,7 +130,7 @@ pnpm dsh web
 - **Token 层**：`theme.overrideTokens(source, tokens)` 在活动主题之上叠加一层，presenter 把它投影到 `body` 的 CSS 变量上——因此亮/暗两套配色都能被完整覆盖。
 - **主题总开关**：`<html data-cp-enabled>` 是全部主题 CSS 的前置条件；关闭开关会移除该属性、dispose token 覆盖，并让氛围层/状态条组件返回 `null`。设置页样式刻意不加这个前缀，所以关掉主题后仍能打开设置页重新开启。
 - **流光边框性能**：四边细条方案把每帧需要重绘的像素量从 `宽 × 高` 降到 `2 × (宽 + 高) × 2px`（约两个数量级），并且动画只改 `transform`，交给合成器在 GPU 上处理，主线程不会每帧重新光栅化。
-- **故障闪烁性能**：故障层平时 `opacity: 0`，只在 6 秒周期内的 4 组短瞬间做 `opacity/transform` 变化——这是浏览器最便宜的合成器属性，而且绝大部分时间完全不做功，所以放在 Balanced/Eco 里仍几乎不增加功耗。
+- **故障闪烁性能**：屏幕故障层平时 `opacity: 0`，只在 6 秒周期内做短促的 `opacity/transform` 变化；品牌/统计/状态条的 RGB 撕裂则在各自的 5–8 秒周期内**停留约 0.5–0.7 秒**再恢复。这些都是合成器友好属性，绝大部分时间不做功，所以放在 Balanced/Eco 里仍几乎不增加功耗。
 - **Slot 注册**：氛围层注册在 `shell.overlay`（list、可叠加），状态条在 `conversation.composer.dock`，设置页在 `settings.section`。
 - **产品 DOM 定位**：内置 UI 全部通过**稳定属性**（而非哈希类名）来定向：
   - 用户气泡：`data-chat-flow-kind="user"` + `data-time-hover-root`（行内栈的最后一个 `div` 就是气泡本体）

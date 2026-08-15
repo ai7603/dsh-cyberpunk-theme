@@ -99,9 +99,13 @@ if (settingsSection) {
     const svg = document.querySelector('svg[viewBox="0 0 182 24"]')
     const status = document.querySelector('.cp-status')
     const statsRoot = status?.previousElementSibling ?? null
+    const statsSpan = statsRoot
+      ? [...statsRoot.querySelectorAll(':scope > span')].find((s) => !s.hasAttribute('aria-hidden'))
+      : null
     const cacheSpan = statsRoot
       ? [...statsRoot.querySelectorAll(':scope > span')].find((s) => /^(Cache hit|缓存命中)/.test(s.textContent ?? ''))
       : null
+    const statusChip = document.querySelector('.cp-status--glitch .cp-status-chip')
     return {
       perf: document.documentElement.getAttribute('data-cp-perf'),
       overlay: Boolean(document.querySelector('.cp-overlay')),
@@ -114,6 +118,8 @@ if (settingsSection) {
       scanlines: Boolean(document.querySelector('.cp-scanlines')),
       vignette: Boolean(document.querySelector('.cp-vignette')),
       brandAnimation: svg ? getComputedStyle(svg).animationName : '',
+      statsAnimation: statsSpan ? getComputedStyle(statsSpan).animationName : '',
+      statusChipAnimation: statusChip ? getComputedStyle(statusChip).animationName : '',
       statusGlitch: Boolean(document.querySelector('.cp-status--glitch')),
       cacheHit: cacheSpan ? cacheSpan.textContent.trim() : '',
       cpAnimations: document.getAnimations()
@@ -260,10 +266,9 @@ const ok = active
   && result.perfProbe?.balanced?.glitchDuration === '6s'
   && result.perfProbe?.balanced?.grid
   && result.perfProbe?.balanced?.statusGlitch
-  && balancedAnims.includes('cp-glitch')
-  && balancedAnims.includes('cp-brand-glitch')
-  && balancedAnims.includes('cp-stats-glitch')
-  && balancedAnims.includes('cp-status-glitch')
+  && result.perfProbe?.balanced?.brandAnimation === 'cp-brand-glitch'
+  && result.perfProbe?.balanced?.statsAnimation === 'cp-stats-glitch'
+  && result.perfProbe?.balanced?.statusChipAnimation === 'cp-status-glitch'
   && balancedAnims.every((n) => microGlitchNames.has(n))
   && cacheOk(result.perfProbe?.balanced?.cacheHit)
   && result.perfProbe?.eco?.perf === 'eco'
@@ -271,10 +276,9 @@ const ok = active
   && result.perfProbe?.eco?.glitch
   && result.perfProbe?.eco?.glitchDuration === '6s'
   && result.perfProbe?.eco?.statusGlitch
-  && ecoAnims.includes('cp-glitch')
-  && ecoAnims.includes('cp-brand-glitch')
-  && ecoAnims.includes('cp-stats-glitch')
-  && ecoAnims.includes('cp-status-glitch')
+  && result.perfProbe?.eco?.brandAnimation === 'cp-brand-glitch'
+  && result.perfProbe?.eco?.statsAnimation === 'cp-stats-glitch'
+  && result.perfProbe?.eco?.statusChipAnimation === 'cp-status-glitch'
   && ecoAnims.every((n) => microGlitchNames.has(n))
   && cacheOk(result.perfProbe?.eco?.cacheHit)
   && !result.perfProbe?.eco?.ribbon
